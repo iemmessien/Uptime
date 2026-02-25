@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import {
   Home,
+  Zap,
   GanttChartSquare,
   ChevronDown,
   ChevronRight,
@@ -41,7 +42,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   // Check if current path is an uptime-related page
   const isUptimePath = pathname === "/overview" || 
                        pathname.startsWith("/overview") ||
-                       uptimeSubItems.some(item => pathname === item.path || pathname.startsWith(item.path));
+                       uptimeSubItems.some(item => pathname === item.path);
   const [isUptimeExpanded, setIsUptimeExpanded] = useState(isUptimePath);
 
   return (
@@ -66,7 +67,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         <div className="flex flex-col h-full">
           {/* Close button for mobile */}
           <div className="flex items-center justify-between p-4 border-b lg:hidden">
-            <h2 className="font-semibold text-gray-800">Menu</h2>
+            <h2 className="font-semibold text-gray-900">Menu</h2>
             <Button variant="ghost" size="icon" onClick={onClose}>
               <X className="h-5 w-5" />
             </Button>
@@ -74,6 +75,23 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
 
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto p-3">
+            {/* Home */}
+            <button
+              onClick={() => {
+                router.push("/");
+                onClose?.();
+              }}
+              className={cn(
+                "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors mb-1",
+                pathname === "/"
+                  ? "bg-orange-500 text-white"
+                  : "text-gray-900 hover:bg-orange-50 hover:text-orange-600"
+              )}
+            >
+              <Home className="h-4 w-4" />
+              <span>Home</span>
+            </button>
+
             {/* Uptime */}
             <div className="mb-1">
               <button
@@ -85,10 +103,10 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                   "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                   pathname === "/overview" || pathname.startsWith("/overview")
                     ? "bg-orange-500 text-white"
-                    : "text-gray-700 hover:bg-orange-50 hover:text-orange-600"
+                    : "text-gray-900 hover:bg-orange-50 hover:text-orange-600"
                 )}
               >
-                <Home className="h-4 w-4" />
+                <Zap className="h-4 w-4" />
                 <span className="flex-1 text-left">Uptime</span>
                 {isUptimeExpanded ? (
                   <ChevronDown className="h-4 w-4" />
@@ -109,9 +127,9 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                       }}
                       className={cn(
                         "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors",
-                        pathname === item.path || pathname.startsWith(item.path)
+                        pathname === item.path
                           ? "bg-orange-500 text-white font-medium"
-                          : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
+                          : "text-gray-900 hover:bg-orange-50 hover:text-orange-600"
                       )}
                     >
                       {item.label}
@@ -131,7 +149,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                 "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                 pathname === "/gantt"
                   ? "bg-orange-500 text-white"
-                  : "text-gray-700 hover:bg-orange-50 hover:text-orange-600"
+                  : "text-gray-900 hover:bg-orange-50 hover:text-orange-600"
               )}
             >
               <GanttChartSquare className="h-4 w-4" />

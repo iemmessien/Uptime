@@ -20,7 +20,7 @@ interface TopbarProps {
 
 const menuItems = [
   { label: "Main", path: "/" },
-  { label: "Uptime Overview", path: "/overview" },
+  { label: "Overview", path: "/overview" },
   { label: "Ejigbo", path: "/ejigbo" },
   { label: "Isolo", path: "/isolo" },
   { label: "Gen 1", path: "/generator-1" },
@@ -70,16 +70,19 @@ export function Topbar({ username, onToggleSidebar }: TopbarProps) {
       </Button>
 
       {/* Logo */}
-      <div className="flex items-center gap-2">
+      <button 
+        onClick={() => router.push("/")}
+        className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
+      >
         <img
           src="/uptime/images/tpsl-logo.jpeg"
           alt="TPSL"
           className="h-10 w-auto"
         />
-        <span className="font-semibold text-gray-800 hidden sm:inline">
+        <span className="font-semibold text-gray-900 hidden sm:inline">
           Uptime Monitoring
         </span>
-      </div>
+      </button>
 
       {/* Spacer */}
       <div className="flex-1" />
@@ -135,6 +138,12 @@ export function Topbar({ username, onToggleSidebar }: TopbarProps) {
             </div>
           </div>
           <DropdownMenuSeparator />
+          <DropdownMenuItem 
+            onClick={() => router.push("/import")}
+            className="hover:bg-orange-50 hover:text-orange-600 focus:bg-orange-50 focus:text-orange-600"
+          >
+            Import Uptime
+          </DropdownMenuItem>
           <DropdownMenuItem 
             onClick={() => setViewMode(viewMode === "Default" ? "Full Screen" : "Default")}
             className="hover:bg-orange-50 hover:text-orange-600 focus:bg-orange-50 focus:text-orange-600"

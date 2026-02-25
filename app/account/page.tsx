@@ -27,7 +27,7 @@ export default async function AccountPage() {
   return (
     <DashboardLayout username={user.username}>
       <div className="container mx-auto p-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">Account Settings</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">Account Settings</h1>
         <AccountForm
           initialEmail={adminUser.email}
           initialUsername={adminUser.username}

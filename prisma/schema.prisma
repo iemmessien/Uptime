@@ -20,3 +20,201 @@ model Admin {
 
   @@map("admins")
 }
+
+model Uptime {
+  id          String   @id @default(cuid())
+  startTime   DateTime
+  endTime     DateTime
+  runTime     Int      // Duration in minutes or seconds
+  utilization Float    // Percentage
+  testRun     Boolean  @default(false)
+  date        DateTime
+  dayNumber   String   // e.g., "2026022601"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  ejigboId    String?
+  ejigbo      Ejigbo?  @relation(fields: [ejigboId], references: [id], onDelete: Cascade)
+  
+  isoloId     String?
+  isolo       Isolo?   @relation(fields: [isoloId], references: [id], onDelete: Cascade)
+  
+  gen1Id      String?
+  gen1        Gen1?    @relation(fields: [gen1Id], references: [id], onDelete: Cascade)
+  
+  gen2Id      String?
+  gen2        Gen2?    @relation(fields: [gen2Id], references: [id], onDelete: Cascade)
+  
+  gen3Id      String?
+  gen3        Gen3?    @relation(fields: [gen3Id], references: [id], onDelete: Cascade)
+  
+  gen4Id      String?
+  gen4        Gen4?    @relation(fields: [gen4Id], references: [id], onDelete: Cascade)
+  
+  gen5Id      String?
+  gen5        Gen5?    @relation(fields: [gen5Id], references: [id], onDelete: Cascade)
+  
+  gen6Id      String?
+  gen6        Gen6?    @relation(fields: [gen6Id], references: [id], onDelete: Cascade)
+  
+  gen7Id      String?
+  gen7        Gen7?    @relation(fields: [gen7Id], references: [id], onDelete: Cascade)
+  
+  gen8Id      String?
+  gen8        Gen8?    @relation(fields: [gen8Id], references: [id], onDelete: Cascade)
+  
+  gen9Id      String?
+  gen9        Gen9?    @relation(fields: [gen9Id], references: [id], onDelete: Cascade)
+  
+  gen10Id     String?
+  gen10       Gen10?   @relation(fields: [gen10Id], references: [id], onDelete: Cascade)
+  
+  gen11Id     String?
+  gen11       Gen11?   @relation(fields: [gen11Id], references: [id], onDelete: Cascade)
+  
+  gen12Id     String?
+  gen12       Gen12?   @relation(fields: [gen12Id], references: [id], onDelete: Cascade)
+
+  @@map("uptimes")
+}
+
+model Ejigbo {
+  id        String   @id @default(cuid())
+  name      String   @default("Ejigbo Grid")
+  uptimes   Uptime[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("ejigbo")
+}
+
+model Isolo {
+  id        String   @id @default(cuid())
+  name      String   @default("Isolo Grid")
+  uptimes   Uptime[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("isolo")
+}
+
+model Gen1 {
+  id        String   @id @default(cuid())
+  name      String   @default("Generator 1")
+  uptimes   Uptime[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("gen1")
+}
+
+model Gen2 {
+  id        String   @id @default(cuid())
+  name      String   @default("Generator 2")
+  uptimes   Uptime[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("gen2")
+}
+
+model Gen3 {
+  id        String   @id @default(cuid())
+  name      String   @default("Generator 3")
+  uptimes   Uptime[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("gen3")
+}
+
+model Gen4 {
+  id        String   @id @default(cuid())
+  name      String   @default("Generator 4")
+  uptimes   Uptime[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("gen4")
+}
+
+model Gen5 {
+  id        String   @id @default(cuid())
+  name      String   @default("Generator 5")
+  uptimes   Uptime[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("gen5")
+}
+
+model Gen6 {
+  id        String   @id @default(cuid())
+  name      String   @default("Generator 6")
+  uptimes   Uptime[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("gen6")
+}
+
+model Gen7 {
+  id        String   @id @default(cuid())
+  name      String   @default("Generator 7")
+  uptimes   Uptime[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("gen7")
+}
+
+model Gen8 {
+  id        String   @id @default(cuid())
+  name      String   @default("Generator 8")
+  uptimes   Uptime[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("gen8")
+}
+
+model Gen9 {
+  id        String   @id @default(cuid())
+  name      String   @default("Generator 9")
+  uptimes   Uptime[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("gen9")
+}
+
+model Gen10 {
+  id        String   @id @default(cuid())
+  name      String   @default("Generator 10")
+  uptimes   Uptime[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("gen10")
+}
+
+model Gen11 {
+  id        String   @id @default(cuid())
+  name      String   @default("Generator 11")
+  uptimes   Uptime[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("gen11")
+}
+
+model Gen12 {
+  id        String   @id @default(cuid())
+  name      String   @default("Generator 12")
+  uptimes   Uptime[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("gen12")
+}

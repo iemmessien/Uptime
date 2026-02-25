@@ -116,7 +116,7 @@ export function AccountForm({ initialEmail, initialUsername }: AccountFormProps)
           {/* Password Change Section */}
           <div className="border-t pt-6 space-y-4">
             <h3 className="text-lg font-medium">Change Password</h3>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-900">
               Leave blank if you don't want to change your password
             </p>
 
