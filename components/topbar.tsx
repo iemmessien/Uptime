@@ -19,21 +19,22 @@ interface TopbarProps {
 }
 
 const menuItems = [
-  { label: "Main", path: "/uptime" },
-  { label: "Ejigbo", path: "/uptime/ejigbo" },
-  { label: "Isolo", path: "/uptime/isolo" },
-  { label: "Gen 1", path: "/uptime/generator-1" },
-  { label: "Gen 2", path: "/uptime/generator-2" },
-  { label: "Gen 3", path: "/uptime/generator-3" },
-  { label: "Gen 4", path: "/uptime/generator-4" },
-  { label: "Gen 5", path: "/uptime/generator-5" },
-  { label: "Gen 6", path: "/uptime/generator-6" },
-  { label: "Gen 7", path: "/uptime/generator-7" },
-  { label: "Gen 8", path: "/uptime/generator-8" },
-  { label: "Gen 9", path: "/uptime/generator-9" },
-  { label: "Gen 10", path: "/uptime/generator-10" },
-  { label: "Gen 11", path: "/uptime/generator-11" },
-  { label: "Gen 12", path: "/uptime/generator-12" },
+  { label: "Main", path: "/" },
+  { label: "Uptime Overview", path: "/overview" },
+  { label: "Ejigbo", path: "/ejigbo" },
+  { label: "Isolo", path: "/isolo" },
+  { label: "Gen 1", path: "/generator-1" },
+  { label: "Gen 2", path: "/generator-2" },
+  { label: "Gen 3", path: "/generator-3" },
+  { label: "Gen 4", path: "/generator-4" },
+  { label: "Gen 5", path: "/generator-5" },
+  { label: "Gen 6", path: "/generator-6" },
+  { label: "Gen 7", path: "/generator-7" },
+  { label: "Gen 8", path: "/generator-8" },
+  { label: "Gen 9", path: "/generator-9" },
+  { label: "Gen 10", path: "/generator-10" },
+  { label: "Gen 11", path: "/generator-11" },
+  { label: "Gen 12", path: "/generator-12" },
 ];
 
 export function Topbar({ username, onToggleSidebar }: TopbarProps) {
@@ -99,7 +100,11 @@ export function Topbar({ username, onToggleSidebar }: TopbarProps) {
             <DropdownMenuItem
               key={item.path}
               onClick={() => router.push(item.path)}
-              className={pathname === item.path ? "bg-orange-50" : ""}
+              className={
+                pathname === item.path 
+                  ? "bg-orange-500 text-white focus:bg-orange-600 focus:text-white" 
+                  : "hover:bg-orange-50 hover:text-orange-600 focus:bg-orange-50 focus:text-orange-600"
+              }
             >
               {item.label}
             </DropdownMenuItem>
@@ -130,14 +135,23 @@ export function Topbar({ username, onToggleSidebar }: TopbarProps) {
             </div>
           </div>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setViewMode(viewMode === "Default" ? "Full Screen" : "Default")}>
+          <DropdownMenuItem 
+            onClick={() => setViewMode(viewMode === "Default" ? "Full Screen" : "Default")}
+            className="hover:bg-orange-50 hover:text-orange-600 focus:bg-orange-50 focus:text-orange-600"
+          >
             View Mode: {viewMode}
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => router.push("/uptime/account")}>
+          <DropdownMenuItem 
+            onClick={() => router.push("/account")}
+            className="hover:bg-orange-50 hover:text-orange-600 focus:bg-orange-50 focus:text-orange-600"
+          >
             Account Details
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+          <DropdownMenuItem 
+            onClick={handleLogout} 
+            className="text-red-600 hover:bg-red-50 hover:text-red-700 focus:bg-red-50 focus:text-red-700"
+          >
             Log out
           </DropdownMenuItem>
         </DropdownMenuContent>

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { DashboardLayout } from "@/components/dashboard-layout";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export default async function IsoloPage() {
   const user = await getCurrentUser();
@@ -13,11 +14,53 @@ export default async function IsoloPage() {
     <DashboardLayout username={user.username}>
       <div className="container mx-auto p-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-6">Isolo Grid</h1>
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <p className="text-gray-600">
-            Monitoring uptime for Isolo grid power supply.
-          </p>
-        </div>
+
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="mb-6">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="power-availability">Power Availability</TabsTrigger>
+            <TabsTrigger value="power-utilization">Power Utilization</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview">
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                Isolo Grid Overview
+              </h2>
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="text-sm text-gray-600">Status: Online</span>
+                </div>
+                <p className="text-gray-600">
+                  Monitoring uptime for Isolo grid power supply.
+                </p>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="power-availability">
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                Power Availability
+              </h2>
+              <p className="text-gray-600">
+                Power availability metrics for Isolo grid.
+              </p>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="power-utilization">
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                Power Utilization
+              </h2>
+              <p className="text-gray-600">
+                Power utilization metrics for Isolo grid.
+              </p>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );

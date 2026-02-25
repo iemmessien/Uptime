@@ -18,28 +18,31 @@ interface SidebarProps {
 }
 
 const uptimeSubItems = [
-  { label: "Ejigbo", path: "/uptime/ejigbo" },
-  { label: "Isolo", path: "/uptime/isolo" },
-  { label: "Gen 1", path: "/uptime/generator-1" },
-  { label: "Gen 2", path: "/uptime/generator-2" },
-  { label: "Gen 3", path: "/uptime/generator-3" },
-  { label: "Gen 4", path: "/uptime/generator-4" },
-  { label: "Gen 5", path: "/uptime/generator-5" },
-  { label: "Gen 6", path: "/uptime/generator-6" },
-  { label: "Gen 7", path: "/uptime/generator-7" },
-  { label: "Gen 8", path: "/uptime/generator-8" },
-  { label: "Gen 9", path: "/uptime/generator-9" },
-  { label: "Gen 10", path: "/uptime/generator-10" },
-  { label: "Gen 11", path: "/uptime/generator-11" },
-  { label: "Gen 12", path: "/uptime/generator-12" },
+  { label: "Ejigbo", path: "/ejigbo" },
+  { label: "Isolo", path: "/isolo" },
+  { label: "Gen 1", path: "/generator-1" },
+  { label: "Gen 2", path: "/generator-2" },
+  { label: "Gen 3", path: "/generator-3" },
+  { label: "Gen 4", path: "/generator-4" },
+  { label: "Gen 5", path: "/generator-5" },
+  { label: "Gen 6", path: "/generator-6" },
+  { label: "Gen 7", path: "/generator-7" },
+  { label: "Gen 8", path: "/generator-8" },
+  { label: "Gen 9", path: "/generator-9" },
+  { label: "Gen 10", path: "/generator-10" },
+  { label: "Gen 11", path: "/generator-11" },
+  { label: "Gen 12", path: "/generator-12" },
 ];
 
 export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const [isUptimeExpanded, setIsUptimeExpanded] = useState(true);
-
-  const isUptimePath = pathname === "/uptime" || uptimeSubItems.some(item => item.path === pathname);
+  
+  // Check if current path is an uptime-related page
+  const isUptimePath = pathname === "/overview" || 
+                       pathname.startsWith("/overview") ||
+                       uptimeSubItems.some(item => pathname === item.path || pathname.startsWith(item.path));
+  const [isUptimeExpanded, setIsUptimeExpanded] = useState(isUptimePath);
 
   return (
     <>
@@ -75,16 +78,14 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             <div className="mb-1">
               <button
                 onClick={() => {
-                  if (pathname !== "/uptime") {
-                    router.push("/uptime");
-                  }
+                  router.push("/overview");
                   setIsUptimeExpanded(!isUptimeExpanded);
                 }}
                 className={cn(
                   "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                  pathname === "/uptime"
-                    ? "bg-orange-50 text-orange-600"
-                    : "text-gray-700 hover:bg-gray-100"
+                  pathname === "/overview" || pathname.startsWith("/overview")
+                    ? "bg-orange-500 text-white"
+                    : "text-gray-700 hover:bg-orange-50 hover:text-orange-600"
                 )}
               >
                 <Home className="h-4 w-4" />
@@ -108,9 +109,9 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                       }}
                       className={cn(
                         "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors",
-                        pathname === item.path
-                          ? "bg-orange-50 text-orange-600 font-medium"
-                          : "text-gray-600 hover:bg-gray-100"
+                        pathname === item.path || pathname.startsWith(item.path)
+                          ? "bg-orange-500 text-white font-medium"
+                          : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
                       )}
                     >
                       {item.label}
@@ -123,14 +124,14 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             {/* Gantt Chart */}
             <button
               onClick={() => {
-                router.push("/uptime/gantt");
+                router.push("/gantt");
                 onClose?.();
               }}
               className={cn(
                 "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                pathname === "/uptime/gantt"
-                  ? "bg-orange-50 text-orange-600"
-                  : "text-gray-700 hover:bg-gray-100"
+                pathname === "/gantt"
+                  ? "bg-orange-500 text-white"
+                  : "text-gray-700 hover:bg-orange-50 hover:text-orange-600"
               )}
             >
               <GanttChartSquare className="h-4 w-4" />

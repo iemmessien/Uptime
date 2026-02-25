@@ -11,13 +11,23 @@ export interface TokenPayload {
 }
 
 export function generateToken(payload: TokenPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN } as any);
+  console.log('[Auth] Generating token with secret length:', JWT_SECRET.length);
+  console.log('[Auth] Token payload:', { userId: payload.userId, username: payload.username, email: payload.email });
+  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN } as any);
+  console.log('[Auth] Token generated, length:', token.length);
+  return token;
 }
 
 export function verifyToken(token: string): TokenPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as TokenPayload;
+    const decoded = jwt.verify(token, JWT_SECRET) as TokenPayload;
+    console.log('[Auth] Token verified successfully for user:', decoded.username);
+    return decoded;
   } catch (error) {
+    console.error('[Auth] Token verification failed:', error instanceof Error ? error.message : error);
+    if (error instanceof jwt.JsonWebTokenError) {
+      console.error('[Auth] JWT Error type:', error.constructor.name);
+    }
     return null;
   }
 }

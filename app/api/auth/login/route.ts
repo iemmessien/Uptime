@@ -51,10 +51,8 @@ export async function POST(request: NextRequest) {
       email: admin.email,
     });
 
-    // Set cookie
-    await setAuthCookie(token);
-
-    return NextResponse.json({
+    // Create response
+    const response = NextResponse.json({
       success: true,
       user: {
         id: admin.id,
@@ -62,6 +60,19 @@ export async function POST(request: NextRequest) {
         email: admin.email,
       },
     });
+
+    // Set cookie directly on response with 30 days expiry
+    const maxAge = 30 * 24 * 60 * 60; // 30 days in seconds
+    response.cookies.set('auth-token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: maxAge,
+      path: '/',
+    });
+
+    console.log('[API /api/auth/login] Cookie set successfully');
+    return response;
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json(
