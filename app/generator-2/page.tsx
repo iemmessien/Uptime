@@ -1,0 +1,24 @@
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
+import { DashboardLayout } from "@/components/dashboard-layout";
+
+export default async function Generator2Page() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  return (
+    <DashboardLayout username={user.username}>
+      <div className="container mx-auto p-8">
+        <h1 className="text-3xl font-bold text-gray-800 mb-6">Generator 2</h1>
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <p className="text-gray-600">
+            Monitoring uptime for Generator 2.
+          </p>
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+}
