@@ -10,6 +10,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UptimeStatus {
+  INCOMPLETE
+  COMPLETE
+}
+
 model Admin {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -22,16 +27,17 @@ model Admin {
 }
 
 model Uptime {
-  id          String   @id @default(cuid())
+  id          String       @id @default(cuid())
   startTime   DateTime
   endTime     DateTime
-  runTime     Int      // Duration in minutes or seconds
-  utilization Float    // Percentage
-  testRun     Boolean  @default(false)
+  runTime     Int          // Duration in minutes or seconds
+  utilization Float        // Percentage
+  testRun     Boolean      @default(false)
+  status      UptimeStatus @default(INCOMPLETE)
   date        DateTime
-  dayNumber   String   // e.g., "2026022601"
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  dayNumber   String       // e.g., "2026022601"
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   // Relations
   ejigboId    String?
