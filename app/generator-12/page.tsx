@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { AddUptimeButton } from "@/components/add-uptime-button";
 
 export default async function Generator12Page() {
   const user = await getCurrentUser();
@@ -23,9 +24,7 @@ export default async function Generator12Page() {
               <TabsTrigger value="power-utilization">Power Utilization</TabsTrigger>
               <TabsTrigger value="test-run">Test Run</TabsTrigger>
             </TabsList>
-            <button className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors font-medium">
-              Add Uptime
-            </button>
+            <AddUptimeButton />
           </div>
 
           <TabsContent value="overview">
