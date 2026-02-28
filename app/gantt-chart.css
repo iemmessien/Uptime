@@ -1,0 +1,75 @@
+/* Frappe Gantt Custom Styles */
+.gantt-container {
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+/* Hide bar labels since we show them in separate column */
+.gantt .bar-label {
+  display: none !important;
+}
+
+.gantt .bar {
+  fill: #ff8c00 !important;
+}
+
+.gantt .bar-progress {
+  fill: #ff8c00 !important;
+}
+
+.gantt .bar:hover {
+  fill: #e67e00 !important;
+}
+
+.gantt .grid-header {
+  fill: #f9fafb;
+  stroke: #e5e7eb;
+}
+
+.gantt .grid-row {
+  fill: #fff;
+}
+
+.gantt .grid-row:nth-child(even) {
+  fill: #f9fafb;
+}
+
+.gantt .today-highlight {
+  fill: #fff3e0 !important;
+}
+
+.gantt .arrow {
+  stroke: #ff8c00 !important;
+}
+
+.gantt-container .popup-wrapper {
+  background: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 4px !important;
+  box-shadow: 0 10px 24px -3px rgba(0, 0, 0, 0.3) !important;
+  padding: 12px !important;
+  min-width: 200px !important;
+  z-index: 9999 !important;
+}
+
+.gantt-container .popup-wrapper .details-container {
+  padding: 0 !important;
+}
+
+.gantt-container .popup-wrapper h5 {
+  margin: 0 0 8px 0 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #111827 !important;
+}
+
+.gantt-container .popup-wrapper p {
+  margin: 4px 0 !important;
+  font-size: 13px !important;
+  color: #6b7280 !important;
+}
+
+.gantt-container .popup-wrapper p:first-of-type {
+  color: #ff8c00 !important;
+  font-weight: 500 !important;
+}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -34,6 +34,7 @@ export function AddUptimeDialog({ open, onOpenChange }: AddUptimeDialogProps) {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [startTime, setStartTime] = useState("")
   const [endTime, setEndTime] = useState("")
+  const [duration, setDuration] = useState("Unknown")
   const [testRun, setTestRun] = useState("no")
   const [powerSelection, setPowerSelection] = useState<PowerSelection>({
     ejigbo: false,
@@ -52,6 +53,38 @@ export function AddUptimeDialog({ open, onOpenChange }: AddUptimeDialogProps) {
     gen12: false,
   })
 
+  // Calculate duration whenever start time or end time changes
+  useEffect(() => {
+    if (!startTime || !endTime) {
+      setDuration("Unknown")
+      return
+    }
+
+    const [startHour, startMinute] = startTime.split(':').map(Number)
+    const [endHour, endMinute] = endTime.split(':').map(Number)
+    
+    const startMinutes = startHour * 60 + startMinute
+    const endMinutes = endHour * 60 + endMinute
+    
+    let durationMinutes = 0
+    
+    // If end time is earlier than start time, assume it's the next day
+    if (endMinutes < startMinutes) {
+      durationMinutes = (1440 - startMinutes) + endMinutes
+    } else {
+      durationMinutes = endMinutes - startMinutes
+    }
+    
+    const hours = Math.floor(durationMinutes / 60)
+    const minutes = durationMinutes % 60
+    
+    if (hours > 0) {
+      setDuration(`${hours}h ${minutes}m`)
+    } else {
+      setDuration(`${minutes}m`)
+    }
+  }, [startTime, endTime])
+
   const handlePowerChange = (key: keyof PowerSelection, checked: boolean) => {
     setPowerSelection(prev => ({ ...prev, [key]: checked }))
   }
@@ -60,6 +93,7 @@ export function AddUptimeDialog({ open, onOpenChange }: AddUptimeDialogProps) {
     setDate(new Date().toISOString().split('T')[0])
     setStartTime("")
     setEndTime("")
+    setDuration("Unknown")
     setTestRun("no")
     setPowerSelection({
       ejigbo: false,
@@ -221,18 +255,29 @@ export function AddUptimeDialog({ open, onOpenChange }: AddUptimeDialogProps) {
             </div>
           </div>
 
-          {/* Start Time */}
-          <div className="space-y-2">
-            <Label htmlFor="startTime" className="text-sm font-medium text-gray-900">
-              Start Time:
-            </Label>
-            <Input
-              id="startTime"
-              type="time"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-              className="w-40"
-            />
+          {/* Start Time and Duration */}
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="startTime" className="text-sm font-medium text-gray-900">
+                Start Time:
+              </Label>
+              <Input
+                id="startTime"
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="w-40"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-900">
+                Duration:
+              </Label>
+              <div className="text-sm text-gray-900 font-semibold py-2">
+                {duration}
+              </div>
+            </div>
           </div>
 
           {/* End Time */}

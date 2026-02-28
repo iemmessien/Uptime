@@ -4,4 +4,6 @@ const nextConfig: NextConfig = {
   basePath: "/uptime",
 };
 
+
+
 export default nextConfig;

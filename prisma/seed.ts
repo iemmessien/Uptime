@@ -51,20 +51,26 @@ async function main() {
   console.log('\nSeeding power elements...')
 
   // Ejigbo Grid
-  const ejigbo = await prisma.ejigbo.upsert({
-    where: { id: 1 },
-    update: {},
-    create: { name: 'Ejigbo' }
-  })
-  console.log('Created/Updated: Ejigbo')
+  const ejigboCount = await prisma.ejigbo.count()
+  if (ejigboCount === 0) {
+    await prisma.ejigbo.create({
+      data: { name: 'Ejigbo' }
+    })
+    console.log('Created: Ejigbo')
+  } else {
+    console.log('Ejigbo already exists')
+  }
 
   // Isolo Grid
-  const isolo = await prisma.isolo.upsert({
-    where: { id: 1 },
-    update: {},
-    create: { name: 'Isolo' }
-  })
-  console.log('Created/Updated: Isolo')
+  const isoloCount = await prisma.isolo.count()
+  if (isoloCount === 0) {
+    await prisma.isolo.create({
+      data: { name: 'Isolo' }
+    })
+    console.log('Created: Isolo')
+  } else {
+    console.log('Isolo already exists')
+  }
 
   // Generators
   const generators = [
@@ -83,12 +89,15 @@ async function main() {
   ]
 
   for (const gen of generators) {
-    await gen.model.upsert({
-      where: { id: 1 },
-      update: {},
-      create: { name: gen.name }
-    })
-    console.log(`Created/Updated: ${gen.name}`)
+    const count = await gen.model.count()
+    if (count === 0) {
+      await gen.model.create({
+        data: { name: gen.name }
+      })
+      console.log(`Created: ${gen.name}`)
+    } else {
+      console.log(`${gen.name} already exists`)
+    }
   }
 
   console.log('\nAll power elements seeded successfully!')
