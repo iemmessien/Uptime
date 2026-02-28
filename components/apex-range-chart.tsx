@@ -3,12 +3,14 @@
 import { useState, useEffect } from "react"
 import dynamic from "next/dynamic"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false })
 
 interface UptimeRangeChartProps {
-   type: "utilization" | "availability"
-   selectedDate: Date
+  type: "utilization" | "availability"
+  selectedDate: Date
 }
 
 interface UptimeData {
@@ -38,14 +40,92 @@ const POWER_SUPPLIES = [
    "Gen 12",
 ]
 
-export function UptimeRangeChart({ type, selectedDate }: UptimeRangeChartProps) {
+export function UptimeRangeChart({ type, selectedDate: initialDate }: UptimeRangeChartProps) {
    const [uptimeData, setUptimeData] = useState<UptimeData[]>([])
    const [loading, setLoading] = useState(true)
    const [viewMode, setViewMode] = useState<ViewMode>("Month")
+   const [selectedDate, setSelectedDate] = useState<Date>(initialDate)
+
+   useEffect(() => {
+      setSelectedDate(initialDate)
+   }, [initialDate])
 
    useEffect(() => {
       fetchUptimeData()
    }, [type, viewMode, selectedDate])
+
+   const handlePrevious = () => {
+      const newDate = new Date(selectedDate)
+      switch (viewMode) {
+         case 'Day':
+            newDate.setDate(newDate.getDate() - 1)
+            break
+         case 'Week':
+            newDate.setDate(newDate.getDate() - 7)
+            break
+         case 'Month':
+            newDate.setMonth(newDate.getMonth() - 1)
+            break
+         case 'Year':
+            newDate.setFullYear(newDate.getFullYear() - 1)
+            break
+      }
+      setSelectedDate(newDate)
+   }
+
+   const handleNext = () => {
+      const newDate = new Date(selectedDate)
+      switch (viewMode) {
+         case 'Day':
+            newDate.setDate(newDate.getDate() + 1)
+            break
+         case 'Week':
+            newDate.setDate(newDate.getDate() + 7)
+            break
+         case 'Month':
+            newDate.setMonth(newDate.getMonth() + 1)
+            break
+         case 'Year':
+            newDate.setFullYear(newDate.getFullYear() + 1)
+            break
+      }
+      setSelectedDate(newDate)
+   }
+
+   const handleToday = () => {
+      setSelectedDate(new Date())
+   }
+
+   const formatDateDisplay = () => {
+      switch (viewMode) {
+         case 'Day':
+            return selectedDate.toLocaleDateString('en-US', {
+               weekday: 'long',
+               year: 'numeric',
+               month: 'long',
+               day: 'numeric'
+            })
+         case 'Week':
+            // Get the Sunday of the week
+            const sunday = new Date(selectedDate)
+            const dayOfWeek = sunday.getDay()
+            sunday.setDate(sunday.getDate() - dayOfWeek)
+            return `Week of ${sunday.toLocaleDateString('en-US', {
+               year: 'numeric',
+               month: 'long',
+               day: 'numeric'
+            })}`
+         case 'Month':
+            return selectedDate.toLocaleDateString('en-US', {
+               year: 'numeric',
+               month: 'long'
+            })
+         case 'Year':
+            return selectedDate.toLocaleDateString('en-US', {
+               year: 'numeric'
+            })
+      }
+   }
 
    const fetchUptimeData = async () => {
       setLoading(true)
@@ -123,6 +203,7 @@ export function UptimeRangeChart({ type, selectedDate }: UptimeRangeChartProps) 
       // Calculate boundaries for Day, Week, Month, and Year views
       let rangeStart: number | undefined
       let rangeEnd: number | undefined
+      let monthSundays: Date[] = []
       
       if (viewMode === 'Day') {
          const startOfDay = new Date(selectedDate)
@@ -155,6 +236,13 @@ export function UptimeRangeChart({ type, selectedDate }: UptimeRangeChartProps) 
          const firstSunday = new Date(firstOfMonth)
          firstSunday.setDate(firstOfMonth.getDate() - dayOfWeek)
          firstSunday.setHours(0, 0, 0, 0)
+         
+         // Calculate the 4 Sundays for the month
+         for (let i = 0; i < 4; i++) {
+            const sunday = new Date(firstSunday)
+            sunday.setDate(firstSunday.getDate() + (i * 7))
+            monthSundays.push(sunday)
+         }
          
          // Show exactly 4 weeks (28 days) from that Sunday
          const endOfFourthWeek = new Date(firstSunday)
@@ -278,11 +366,30 @@ export function UptimeRangeChart({ type, selectedDate }: UptimeRangeChartProps) 
             chartOptions.xaxis.labels.datetimeFormatter = {
                day: 'dd MMM'
             }
+            chartOptions.xaxis.tickAmount = 7
             break
          case 'Month':
-            chartOptions.xaxis.labels.format = 'd'
-            chartOptions.xaxis.labels.datetimeFormatter = {
-               day: 'd'
+            // Show exactly 4 weeks (Sundays) on the x-axis
+            chartOptions.xaxis.tickAmount = 4
+            chartOptions.xaxis.tickPlacement = 'between'
+            
+            // Create a formatter that determines which week based on position in range
+            const startTime = rangeStart!
+            const endTime = rangeEnd!
+            const totalRange = endTime - startTime
+            const weekDuration = totalRange / 4 // Each week is 1/4 of the total range
+            
+            chartOptions.xaxis.labels.formatter = function(value: any, timestamp: number) {
+               if (!timestamp) return ''
+               
+               // Calculate which week this timestamp falls into (0-3)
+               const offsetFromStart = timestamp - startTime
+               const weekIndex = Math.floor(offsetFromStart / weekDuration)
+               
+               // Ensure weekIndex is between 0 and 3
+               const clampedIndex = Math.max(0, Math.min(3, weekIndex))
+               
+               return `Week ${clampedIndex + 1}`
             }
             break
          case 'Year':
@@ -290,6 +397,7 @@ export function UptimeRangeChart({ type, selectedDate }: UptimeRangeChartProps) 
             chartOptions.xaxis.labels.datetimeFormatter = {
                month: 'MMM'
             }
+            chartOptions.xaxis.tickAmount = 12
             break
       }
 
@@ -309,6 +417,37 @@ export function UptimeRangeChart({ type, selectedDate }: UptimeRangeChartProps) 
 
    return (
       <div className="space-y-4">
+         {/* Date Navigation */}
+         <div className="flex items-center gap-4">
+            <Button
+               variant="outline"
+               size="sm"
+               onClick={handlePrevious}
+            >
+               <ChevronLeft className="h-4 w-4" />
+            </Button>
+            
+            <span className="text-sm font-medium text-gray-900 min-w-[300px] text-center">
+               {formatDateDisplay()}
+            </span>
+            
+            <Button
+               variant="outline"
+               size="sm"
+               onClick={handleNext}
+            >
+               <ChevronRight className="h-4 w-4" />
+            </Button>
+            
+            <Button
+               variant="outline"
+               size="sm"
+               onClick={handleToday}
+            >
+               Today
+            </Button>
+         </div>
+
          {/* View Mode Selector */}
          <div className="flex items-center gap-2">
             <label className="text-sm font-medium">View Mode:</label>
