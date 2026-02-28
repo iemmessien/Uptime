@@ -52,16 +52,23 @@ async function fetchUptimesByViewMode(viewMode: string, selectedDate: Date) {
 
   switch (viewMode) {
     case 'Day':
-      startDate = new Date(selectedDate.setHours(0, 0, 0, 0))
-      endDate = new Date(selectedDate.setHours(23, 59, 59, 999))
+      startDate = new Date(selectedDate)
+      startDate.setHours(0, 0, 0, 0)
+      endDate = new Date(selectedDate)
+      endDate.setHours(23, 59, 59, 999)
       break
     
     case 'Week':
-      startDate = new Date(selectedDate)
-      startDate.setDate(selectedDate.getDate() - selectedDate.getDay())
+      // Get 12 weeks: previous month, current month, next month
+      // Start from the Sunday of the week containing first day of previous month
+      const prevMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1, 1)
+      const dayOfWeek = prevMonth.getDay()
+      startDate = new Date(prevMonth)
+      startDate.setDate(prevMonth.getDate() - dayOfWeek)
       startDate.setHours(0, 0, 0, 0)
+      // End 12 weeks later
       endDate = new Date(startDate)
-      endDate.setDate(startDate.getDate() + 6)
+      endDate.setDate(startDate.getDate() + (12 * 7) - 1)
       endDate.setHours(23, 59, 59, 999)
       break
     
@@ -76,20 +83,31 @@ async function fetchUptimesByViewMode(viewMode: string, selectedDate: Date) {
       break
     
     default:
-      startDate = new Date(selectedDate.setHours(0, 0, 0, 0))
-      endDate = new Date(selectedDate.setHours(23, 59, 59, 999))
+      startDate = new Date(selectedDate)
+      startDate.setHours(0, 0, 0, 0)
+      endDate = new Date(selectedDate)
+      endDate.setHours(23, 59, 59, 999)
   }
 
   console.log('[Gantt API] Date range:', { startDate, endDate, viewMode })
 
-  // Fetch all complete uptimes in the date range
+  // Fetch all complete uptimes that overlap with the date range
+  // An uptime overlaps if: startTime < endDate AND endTime > startDate
   const uptimes = await prisma.uptime.findMany({
     where: {
       status: 'COMPLETE',
-      date: {
-        gte: startDate,
-        lte: endDate,
-      },
+      AND: [
+        {
+          startTime: {
+            lt: endDate,
+          },
+        },
+        {
+          endTime: {
+            gt: startDate,
+          },
+        },
+      ],
     },
     include: {
       ejigbo: true,
@@ -118,9 +136,7 @@ async function fetchUptimesByViewMode(viewMode: string, selectedDate: Date) {
 function formatUptimeData(uptimes: any[], viewMode: string, type: string) {
   const formatted: any[] = []
 
-  // Always aggregate by power supply to ensure one row per power supply
-  const aggregated: { [key: string]: { startTime: Date, endTime: Date, duration: number } } = {}
-
+  // Return individual uptime records as separate bars in the Gantt chart
   uptimes.forEach((uptime) => {
     let powerSupply = ''
     
@@ -143,32 +159,12 @@ function formatUptimeData(uptimes: any[], viewMode: string, type: string) {
 
     const duration = type === 'utilization' ? uptime.utilization : uptime.runTime
 
-    if (!aggregated[powerSupply]) {
-      aggregated[powerSupply] = {
-        startTime: new Date(uptime.startTime),
-        endTime: new Date(uptime.endTime),
-        duration: duration
-      }
-    } else {
-      // Sum the durations
-      aggregated[powerSupply].duration += duration
-      // Track earliest start and latest end
-      if (new Date(uptime.startTime) < aggregated[powerSupply].startTime) {
-        aggregated[powerSupply].startTime = new Date(uptime.startTime)
-      }
-      if (new Date(uptime.endTime) > aggregated[powerSupply].endTime) {
-        aggregated[powerSupply].endTime = new Date(uptime.endTime)
-      }
-    }
-  })
-
-  // Convert aggregated data to formatted array
-  Object.keys(aggregated).forEach(powerSupply => {
     formatted.push({
+      id: uptime.id,
       powerSupply,
-      startTime: aggregated[powerSupply].startTime.toISOString(),
-      endTime: aggregated[powerSupply].endTime.toISOString(),
-      duration: aggregated[powerSupply].duration,
+      startTime: new Date(uptime.startTime).toISOString(),
+      endTime: new Date(uptime.endTime).toISOString(),
+      duration: duration,
     })
   })
 
