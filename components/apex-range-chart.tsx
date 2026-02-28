@@ -370,26 +370,32 @@ export function UptimeRangeChart({ type, selectedDate: initialDate }: UptimeRang
             break
          case 'Month':
             // Show exactly 4 weeks (Sundays) on the x-axis
+            // Use a counter to track which label we're on
+            let labelCounter = 0
+            const sundayTicks = monthSundays.map(sunday => sunday.getTime())
+            
             chartOptions.xaxis.tickAmount = 4
-            chartOptions.xaxis.tickPlacement = 'between'
-            
-            // Create a formatter that determines which week based on position in range
-            const startTime = rangeStart!
-            const endTime = rangeEnd!
-            const totalRange = endTime - startTime
-            const weekDuration = totalRange / 4 // Each week is 1/4 of the total range
-            
             chartOptions.xaxis.labels.formatter = function(value: any, timestamp: number) {
                if (!timestamp) return ''
                
-               // Calculate which week this timestamp falls into (0-3)
-               const offsetFromStart = timestamp - startTime
-               const weekIndex = Math.floor(offsetFromStart / weekDuration)
+               // Determine the week based on timestamp position relative to Sundays
+               for (let i = 0; i < sundayTicks.length; i++) {
+                  const currentSunday = sundayTicks[i]
+                  const nextSunday = sundayTicks[i + 1] || (currentSunday + 7 * 24 * 60 * 60 * 1000)
+                  
+                  // If timestamp is between this Sunday and the next, it's this week
+                  if (timestamp >= currentSunday && timestamp < nextSunday) {
+                     return `Week ${i + 1}`
+                  }
+               }
                
-               // Ensure weekIndex is between 0 and 3
-               const clampedIndex = Math.max(0, Math.min(3, weekIndex))
+               // If we're past all Sundays, it's week 4
+               if (timestamp >= sundayTicks[3]) {
+                  return 'Week 4'
+               }
                
-               return `Week ${clampedIndex + 1}`
+               // If before all Sundays, it's week 1
+               return 'Week 1'
             }
             break
          case 'Year':
