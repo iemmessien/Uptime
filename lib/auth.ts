@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -13,7 +13,8 @@ export interface TokenPayload {
 export function generateToken(payload: TokenPayload): string {
   console.log('[Auth] Generating token with secret length:', JWT_SECRET.length);
   console.log('[Auth] Token payload:', { userId: payload.userId, username: payload.username, email: payload.email });
-  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  const options: SignOptions = { expiresIn: JWT_EXPIRES_IN };
+  const token = jwt.sign(payload, JWT_SECRET, options);
   console.log('[Auth] Token generated, length:', token.length);
   return token;
 }
