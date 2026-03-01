@@ -138,8 +138,8 @@ export function AddUptimeDialog({ open, onOpenChange }: AddUptimeDialogProps) {
     // Create uptime records
     try {
       const selectedPowers = Object.entries(powerSelection)
-        .filter(([_, selected]) => selected)
-        .map(([key, _]) => key)
+        .filter(([, selected]) => selected)
+        .map(([key]) => key)
 
       const response = await fetch('/api/uptime', {
         method: 'POST',

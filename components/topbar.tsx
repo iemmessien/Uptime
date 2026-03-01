@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Menu, ChevronDown, User, Eye, EyeOff } from "lucide-react";
+import Image from "next/image";
+import { Menu, ChevronDown, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -74,9 +75,11 @@ export function Topbar({ username, onToggleSidebar }: TopbarProps) {
         onClick={() => router.push("/")}
         className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
       >
-        <img
+        <Image
           src="/uptime/images/tpsl-logo.jpeg"
           alt="TPSL"
+          width={40}
+          height={40}
           className="h-10 w-auto"
         />
         <span className="font-semibold text-gray-900 hidden sm:inline">

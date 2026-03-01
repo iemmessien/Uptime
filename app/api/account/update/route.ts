@@ -93,7 +93,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare update data
-    const updateData: any = {
+    const updateData: {
+      email: string;
+      username: string;
+      password?: string;
+    } = {
       email,
       username,
     };

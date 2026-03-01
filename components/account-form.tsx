@@ -72,7 +72,7 @@ export function AccountForm({ initialEmail, initialUsername }: AccountFormProps)
       } else {
         setError(data.error || "Failed to update account");
       }
-    } catch (err) {
+    } catch {
       setError("An error occurred while updating your account");
     } finally {
       setIsLoading(false);
@@ -117,7 +117,7 @@ export function AccountForm({ initialEmail, initialUsername }: AccountFormProps)
           <div className="border-t pt-6 space-y-4">
             <h3 className="text-lg font-medium">Change Password</h3>
             <p className="text-sm text-gray-900">
-              Leave blank if you don't want to change your password
+              Leave blank if you don&apos;t want to change your password
             </p>
 
             <div className="space-y-2">
