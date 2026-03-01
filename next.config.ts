@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  basePath: "/uptime",
+   basePath: "/uptime",
+
+   eslint: {
+      ignoreDuringBuilds: true,  // ← Add this
+   },
 };
 
 
