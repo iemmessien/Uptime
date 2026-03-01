@@ -3,6 +3,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AddUptimeButton } from "@/components/add-uptime-button";
+import { SingleUtilizationChart } from "@/components/single-utilization-chart";
+import { SingleAvailabilityChart } from "@/components/single-availability-chart";
 
 export default async function IsoloPage() {
   const user = await getCurrentUser();
@@ -27,19 +29,12 @@ export default async function IsoloPage() {
           </div>
 
           <TabsContent value="overview">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Isolo Grid Overview
-              </h2>
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="text-sm text-gray-900">Status: Online</span>
-                </div>
-                <p className="text-gray-900">
-                  Monitoring uptime for Isolo grid power supply.
-                </p>
-              </div>
+            <div className="space-y-6">
+              {/* Utilization Chart */}
+              <SingleUtilizationChart powerSupply="Isolo" color="#10B981" />
+
+              {/* Availability Chart */}
+              <SingleAvailabilityChart powerSupply="Isolo" color="#10B981" />
             </div>
           </TabsContent>
 

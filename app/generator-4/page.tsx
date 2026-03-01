@@ -3,6 +3,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AddUptimeButton } from "@/components/add-uptime-button";
+import { SingleUtilizationChart } from "@/components/single-utilization-chart";
+import { SingleAvailabilityChart } from "@/components/single-availability-chart";
 
 export default async function Generator4Page() {
   const user = await getCurrentUser();
@@ -28,19 +30,12 @@ export default async function Generator4Page() {
           </div>
 
           <TabsContent value="overview">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Generator 4 Overview
-              </h2>
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
-                  <span className="text-sm text-gray-900">Status: Standby</span>
-                </div>
-                <p className="text-gray-900">
-                  Monitoring uptime for Generator 4.
-                </p>
-              </div>
+            <div className="space-y-6">
+              {/* Utilization Chart */}
+              <SingleUtilizationChart powerSupply="Generator 4" color="#F59E0B" />
+
+              {/* Availability Chart */}
+              <SingleAvailabilityChart powerSupply="Generator 4" color="#F59E0B" />
             </div>
           </TabsContent>
 

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Menu, ChevronDown, User } from "lucide-react";
+import { Menu, ChevronDown, User, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -40,7 +40,7 @@ const menuItems = [
 export function Topbar({ username, onToggleSidebar }: TopbarProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const [viewMode, setViewMode] = useState("Default");
+  const [viewMode, setViewMode] = useState("OFF");
 
   const currentPage = menuItems.find((item) => item.path === pathname);
   const currentLabel = currentPage?.label || "Main";
@@ -145,10 +145,22 @@ export function Topbar({ username, onToggleSidebar }: TopbarProps) {
             Import Uptime
           </DropdownMenuItem>
           <DropdownMenuItem 
-            onClick={() => setViewMode(viewMode === "Default" ? "Full Screen" : "Default")}
+            onClick={() => setViewMode(viewMode === "OFF" ? "ON" : "OFF")}
             className="hover:bg-orange-50 hover:text-orange-600 focus:bg-orange-50 focus:text-orange-600"
           >
-            View Mode: {viewMode}
+            <div className="flex items-center gap-2">
+              {viewMode === "OFF" ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              <span>View Mode: {viewMode}</span>
+            </div>
+          </DropdownMenuItem>
+          <DropdownMenuItem 
+            onClick={() => {
+              // TODO: Implement tutorial flow
+              console.log("Show Tutorial clicked");
+            }}
+            className="hover:bg-orange-50 hover:text-orange-600 focus:bg-orange-50 focus:text-orange-600"
+          >
+            Show Tutorial
           </DropdownMenuItem>
           <DropdownMenuItem 
             onClick={() => router.push("/account")}

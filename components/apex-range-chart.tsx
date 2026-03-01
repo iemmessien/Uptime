@@ -385,17 +385,19 @@ export function UptimeRangeChart({ type, selectedDate: initialDate }: UptimeRang
                   
                   // If timestamp is between this Sunday and the next, it's this week
                   if (timestamp >= currentSunday && timestamp < nextSunday) {
-                     return `Week ${i + 1}`
+                     //return `Week ${i + 1}`
                   }
+
+                  return `Week ${i + 1}`
                }
                
                // If we're past all Sundays, it's week 4
                if (timestamp >= sundayTicks[3]) {
-                  return 'Week 4'
+                  //return 'Week 4'
                }
                
                // If before all Sundays, it's week 1
-               return 'Week 1'
+               //return 'Week 1'
             }
             break
          case 'Year':
