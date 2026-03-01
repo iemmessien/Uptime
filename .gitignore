@@ -44,6 +44,6 @@ storybook-static
 
 *.md
 *.txt
-test*
+#test*
 verify*
 /scripts
