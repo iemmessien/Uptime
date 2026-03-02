@@ -89,9 +89,9 @@ async function main() {
   ]
 
   for (const gen of generators) {
-    const count = await gen.model.count()
+    const count = await (gen.model as any).count()
     if (count === 0) {
-      await gen.model.create({
+      await (gen.model as any).create({
         data: { name: gen.name }
       })
       console.log(`Created: ${gen.name}`)
