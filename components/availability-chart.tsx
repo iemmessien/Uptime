@@ -46,7 +46,7 @@ function generateAvailabilityData(daysInMonth: number) {
     // Random hours between 0-24 for demo purposes
     const ejigbo = Math.random() * 20 + 2;
     const isolo = Math.random() * 20 + 2;
-    
+
     // Generators availability is sum of G1 to G6
     // Each generator has random availability
     const g1 = Math.random() * 4;
@@ -55,9 +55,9 @@ function generateAvailabilityData(daysInMonth: number) {
     const g4 = Math.random() * 4;
     const g5 = Math.random() * 4;
     const g6 = Math.random() * 4;
-    
+
     const generatorsSum = g1 + g2 + g3 + g4 + g5 + g6;
-    
+
     ejigboData.push(ejigbo);
     isoloData.push(isolo);
     generatorsData.push(Math.min(generatorsSum, 24)); // Cap at 24 hours

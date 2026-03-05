@@ -425,51 +425,46 @@ export function UptimeRangeChart({ type, selectedDate: initialDate }: UptimeRang
 
    return (
       <div className="space-y-4">
-         {/* Date Navigation */}
-         <div className="flex items-center gap-4">
-            <Button
-               variant="outline"
-               size="sm"
-               onClick={handlePrevious}
-            >
-               <ChevronLeft className="h-4 w-4" />
-            </Button>
-            
-            <span className="text-sm font-medium text-gray-900 min-w-[300px] text-center">
-               {formatDateDisplay()}
-            </span>
-            
-            <Button
-               variant="outline"
-               size="sm"
-               onClick={handleNext}
-            >
-               <ChevronRight className="h-4 w-4" />
-            </Button>
-            
-            <Button
-               variant="outline"
-               size="sm"
-               onClick={handleToday}
-            >
-               Today
-            </Button>
-         </div>
+         {/* Navigation and View Mode Controls */}
+         <div className="flex items-center justify-between">
+            {/* Left side - Date Navigation */}
+            <div className="flex items-center gap-4">
+               <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrevious}
+               >
+                  <ChevronLeft className="h-4 w-4" />
+               </Button>
+               
+               <span className="text-sm font-medium text-gray-900 min-w-[300px] text-center">
+                  {formatDateDisplay()}
+               </span>
+               
+               <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNext}
+               >
+                  <ChevronRight className="h-4 w-4" />
+               </Button>
+            </div>
 
-         {/* View Mode Selector */}
-         <div className="flex items-center gap-2">
-            <label className="text-sm font-medium">View Mode:</label>
-            <Select value={viewMode} onValueChange={(value) => setViewMode(value as ViewMode)}>
-               <SelectTrigger className="w-32">
-                  <SelectValue />
-               </SelectTrigger>
-               <SelectContent>
-                  <SelectItem value="Day">Day</SelectItem>
-                  <SelectItem value="Week">Week</SelectItem>
-                  <SelectItem value="Month">Month</SelectItem>
-                  <SelectItem value="Year">Year</SelectItem>
-               </SelectContent>
-            </Select>
+            {/* Right side - View Mode Selector */}
+            <div className="flex items-center gap-2">
+               <label className="text-sm font-medium">View Mode:</label>
+               <Select value={viewMode} onValueChange={(value) => setViewMode(value as ViewMode)}>
+                  <SelectTrigger className="w-32">
+                     <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                     <SelectItem value="Day">Day</SelectItem>
+                     <SelectItem value="Week">Week</SelectItem>
+                     <SelectItem value="Month">Month</SelectItem>
+                     <SelectItem value="Year">Year</SelectItem>
+                  </SelectContent>
+               </Select>
+            </div>
          </div>
 
          {/* Chart */}

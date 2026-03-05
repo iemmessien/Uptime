@@ -113,7 +113,7 @@ function LoginForm() {
             Uptime Monitoring System
           </CardTitle>
           <CardDescription>
-            Sign in to access the power generation monitoring dashboard
+            Sign in to access your power supply uptime monitoring dashboard
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -41,8 +41,10 @@
     "react": "^19.0.0",
     "react-apexcharts": "^2.0.1",
     "react-dom": "^19.0.0",
+    "recharts": "^3.7.0",
     "tailwind-merge": "^2.2.0",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "vis-timeline": "^8.5.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

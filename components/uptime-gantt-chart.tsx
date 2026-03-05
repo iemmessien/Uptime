@@ -50,9 +50,9 @@ export function UptimeGanttChart({ type, viewMode, selectedDate }: UptimeGanttCh
         `/uptime/api/uptime/gantt?type=${type}&viewMode=${viewMode}&date=${selectedDate.toISOString()}`
       )
       const data = await response.json()
-      
+
       console.log('API Response:', data)
-      
+
       if (data.success) {
         const formatted = formatChartData(data.uptimes)
         console.log('Formatted chart data:', formatted)
@@ -70,7 +70,7 @@ export function UptimeGanttChart({ type, viewMode, selectedDate }: UptimeGanttCh
   const formatChartData = (uptimes: UptimeData[]) => {
     const series = POWER_SUPPLIES.map((powerSupply) => {
       const powerUptimes = uptimes.filter((u) => u.powerSupply === powerSupply)
-      
+
       const data = powerUptimes.map((uptime) => ({
         x: powerSupply,
         y: [
@@ -92,7 +92,7 @@ export function UptimeGanttChart({ type, viewMode, selectedDate }: UptimeGanttCh
   const formatDuration = (minutes: number): string => {
     const hours = Math.floor(minutes / 60)
     const mins = minutes % 60
-    
+
     if (hours > 0) {
       return `${hours}h ${mins}m`
     }
@@ -101,7 +101,7 @@ export function UptimeGanttChart({ type, viewMode, selectedDate }: UptimeGanttCh
 
   const getXAxisConfig = (): any => {
     const baseDate = new Date(selectedDate)
-    
+
     switch (viewMode) {
       case "day":
         // Show 24 hours for the selected day
@@ -116,7 +116,7 @@ export function UptimeGanttChart({ type, viewMode, selectedDate }: UptimeGanttCh
             format: "HH:mm",
           },
         }
-      
+
       case "week":
         // Show 7 days for the selected week
         const startOfWeek = new Date(baseDate)
@@ -134,7 +134,7 @@ export function UptimeGanttChart({ type, viewMode, selectedDate }: UptimeGanttCh
             format: "dd MMM",
           },
         }
-      
+
       case "month":
         // Show all weeks in the month
         const startOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1)
@@ -148,7 +148,7 @@ export function UptimeGanttChart({ type, viewMode, selectedDate }: UptimeGanttCh
             format: "dd MMM",
           },
         }
-      
+
       case "year":
         // Show all months in the year
         const startOfYear = new Date(baseDate.getFullYear(), 0, 1)
@@ -162,7 +162,7 @@ export function UptimeGanttChart({ type, viewMode, selectedDate }: UptimeGanttCh
             format: "MMM yyyy",
           },
         }
-      
+
       default:
         return { type: "datetime" }
     }
@@ -209,7 +209,7 @@ export function UptimeGanttChart({ type, viewMode, selectedDate }: UptimeGanttCh
         const data = w.config.series[seriesIndex].data[dataPointIndex]
         const duration = data.duration || 0
         const powerSupply = w.config.series[seriesIndex].name
-        
+
         return `
           <div style="padding: 10px; background: white; border: 1px solid #ddd; border-radius: 4px;">
             <div style="font-weight: bold; margin-bottom: 5px;">${powerSupply}</div>

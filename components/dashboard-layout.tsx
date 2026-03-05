@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Topbar } from "@/components/topbar";
 import { Sidebar } from "@/components/sidebar";
+import { useViewMode } from "@/lib/view-mode-context";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -11,6 +12,8 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children, username }: DashboardLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { viewMode } = useViewMode();
+  const isFullscreen = viewMode === "ON";
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
@@ -19,10 +22,12 @@ export function DashboardLayout({ children, username }: DashboardLayoutProps) {
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
       />
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar
-          isOpen={isSidebarOpen}
-          onClose={() => setIsSidebarOpen(false)}
-        />
+        {!isFullscreen && (
+          <Sidebar
+            isOpen={isSidebarOpen}
+            onClose={() => setIsSidebarOpen(false)}
+          />
+        )}
         <main className="flex-1 overflow-y-auto bg-gradient-to-br from-orange-50 to-orange-100">
           {children}
         </main>

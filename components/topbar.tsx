@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import { Menu, ChevronDown, Eye, EyeOff } from "lucide-react";
@@ -13,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useViewMode } from "@/lib/view-mode-context";
 
 interface TopbarProps {
   username: string;
@@ -41,7 +41,7 @@ const menuItems = [
 export function Topbar({ username, onToggleSidebar }: TopbarProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const [viewMode, setViewMode] = useState("OFF");
+  const { viewMode, toggleViewMode } = useViewMode();
 
   const currentPage = menuItems.find((item) => item.path === pathname);
   const currentLabel = currentPage?.label || "Main";
@@ -148,7 +148,7 @@ export function Topbar({ username, onToggleSidebar }: TopbarProps) {
             Import Uptime
           </DropdownMenuItem>
           <DropdownMenuItem 
-            onClick={() => setViewMode(viewMode === "OFF" ? "ON" : "OFF")}
+            onClick={() => toggleViewMode()}
             className="hover:bg-orange-50 hover:text-orange-600 focus:bg-orange-50 focus:text-orange-600"
           >
             <div className="flex items-center gap-2">

@@ -62,22 +62,22 @@ export function AddUptimeDialog({ open, onOpenChange }: AddUptimeDialogProps) {
 
     const [startHour, startMinute] = startTime.split(':').map(Number)
     const [endHour, endMinute] = endTime.split(':').map(Number)
-    
+
     const startMinutes = startHour * 60 + startMinute
     const endMinutes = endHour * 60 + endMinute
-    
+
     let durationMinutes = 0
-    
+
     // If end time is earlier than start time, assume it's the next day
     if (endMinutes < startMinutes) {
       durationMinutes = (1440 - startMinutes) + endMinutes
     } else {
       durationMinutes = endMinutes - startMinutes
     }
-    
+
     const hours = Math.floor(durationMinutes / 60)
     const minutes = durationMinutes % 60
-    
+
     if (hours > 0) {
       setDuration(`${hours}h ${minutes}m`)
     } else {
@@ -164,7 +164,7 @@ export function AddUptimeDialog({ open, onOpenChange }: AddUptimeDialogProps) {
       alert("Uptime saved successfully!")
       resetForm()
       onOpenChange(false)
-      
+
       // Refresh the page to show updated data
       window.location.reload()
     } catch (error) {
