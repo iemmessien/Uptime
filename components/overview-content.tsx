@@ -8,6 +8,7 @@ import { PowerUtilizationTab } from "@/components/power-utilization-tab";
 import { UtilizationChart } from "@/components/utilization-chart";
 import { AvailabilityChart } from "@/components/availability-chart";
 import { TestRunTab } from "@/components/test-run-tab";
+import { IncompleteUptimesTable } from "@/components/incomplete-uptimes-table";
 import { useViewMode } from "@/lib/view-mode-context";
 
 export function OverviewContent() {
@@ -24,6 +25,9 @@ export function OverviewContent() {
 
           {/* Availability Chart */}
           <AvailabilityChart />
+
+          {/* Incomplete Uptimes Table */}
+          <IncompleteUptimesTable />
         </div>
       </div>
     );
@@ -53,6 +57,9 @@ export function OverviewContent() {
 
             {/* Availability Chart */}
             <AvailabilityChart />
+
+            {/* Incomplete Uptimes Table */}
+            <IncompleteUptimesTable />
           </div>
         </TabsContent>
 

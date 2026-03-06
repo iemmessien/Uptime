@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Select,
   SelectContent,
@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const MONTHS = [
   "January",
@@ -43,7 +43,6 @@ interface DayData {
   day: number;
   uptimes: UptimeRecord[];
   totals: {
-    runTimes: string;
     ejigbo_av: number;
     isolo_av: number;
     g1_av: number;
@@ -65,7 +64,14 @@ function getDaysInMonth(month: number, year: number): number {
 function formatDuration(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
-  return `${hours}h ${mins}m`;
+  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+}
+
+function formatTime(timeString: string): string {
+  const date = new Date(timeString);
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
 }
 
 export function NormalOperationTab() {
@@ -75,8 +81,35 @@ export function NormalOperationTab() {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [dayDataMap, setDayDataMap] = useState<Map<number, DayData>>(new Map());
   const [loading, setLoading] = useState(false);
+  const tableRef = useRef<HTMLTableElement>(null);
+  const topScrollRef = useRef<HTMLDivElement>(null);
 
   const daysInMonth = getDaysInMonth(selectedMonth, selectedYear);
+
+  // Sync the width of top scrollbar with table width
+  useEffect(() => {
+    if (tableRef.current && topScrollRef.current) {
+      const scrollContent = topScrollRef.current.firstChild as HTMLElement;
+      if (scrollContent) {
+        scrollContent.style.width = `${tableRef.current.scrollWidth}px`;
+      }
+    }
+  }, [dayDataMap, loading]);
+
+  // Scroll sync for top scrollbar
+  const handleTopScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const bottomScroll = document.getElementById('bottom-scroll');
+    if (bottomScroll) {
+      bottomScroll.scrollLeft = e.currentTarget.scrollLeft;
+    }
+  };
+
+  const handleBottomScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const topScroll = document.getElementById('top-scroll');
+    if (topScroll) {
+      topScroll.scrollLeft = e.currentTarget.scrollLeft;
+    }
+  };
 
   useEffect(() => {
     fetchUptimeData();
@@ -89,14 +122,9 @@ export function NormalOperationTab() {
       const startDate = new Date(selectedYear, selectedMonth, 1);
       const endDate = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
 
-      const url = `/api/uptime/list?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
-      console.log("🔍 Fetching URL:", url);
-      console.log("📅 Date range:", { startDate: startDate.toISOString(), endDate: endDate.toISOString() });
+      const url = `/uptime/api/uptime/list?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
 
       const response = await fetch(url);
-      
-      console.log("📡 Response status:", response.status, response.statusText);
-      console.log("📡 Response ok:", response.ok);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -106,18 +134,17 @@ export function NormalOperationTab() {
       }
 
       const data = await response.json();
-      console.log("✅ API Response:", data);
       const uptimes: UptimeRecord[] = data.uptimes || [];
-      console.log("📊 Total uptimes fetched:", uptimes.length);
-      
-      if (uptimes.length > 0) {
-        console.log("📋 Sample uptime:", uptimes[0]);
-      }
 
       // Group uptimes by day
       const dayMap = new Map<number, DayData>();
 
       uptimes.forEach((uptime) => {
+        // Only include COMPLETE uptimes (those with both startTime and endTime)
+        if (!uptime.endTime) {
+          return; // Skip this uptime if it doesn't have an end time
+        }
+
         const uptimeDate = new Date(uptime.date);
         const day = uptimeDate.getDate();
 
@@ -126,7 +153,6 @@ export function NormalOperationTab() {
             day,
             uptimes: [],
             totals: {
-              runTimes: "",
               ejigbo_av: 0,
               isolo_av: 0,
               g1_av: 0,
@@ -147,12 +173,7 @@ export function NormalOperationTab() {
 
       // Calculate totals for each day
       dayMap.forEach((dayData) => {
-        const runTimes: string[] = [];
-        
-        console.log(`📊 Processing day ${dayData.day} with ${dayData.uptimes.length} uptimes`);
-        
         dayData.uptimes.forEach((uptime) => {
-          runTimes.push(formatDuration(uptime.duration));
 
           // Availability (av) is the runtime/duration
           switch (uptime.powerSupply) {
@@ -190,15 +211,9 @@ export function NormalOperationTab() {
               break;
           }
         });
-
-        dayData.totals.runTimes = runTimes.join(", ");
       });
-
-      console.log("🗺️ Final dayDataMap size:", dayMap.size);
-      console.log("🗺️ Days with data:", Array.from(dayMap.keys()));
       
       setDayDataMap(dayMap);
-      console.log("✅ dayDataMap set successfully");
     } catch (error) {
       console.error("❌ Error fetching uptime data:", error);
     } finally {
@@ -208,6 +223,7 @@ export function NormalOperationTab() {
 
   const toggleRow = (day: number) => {
     const dayData = dayDataMap.get(day);
+    
     if (!dayData || dayData.uptimes.length === 0) {
       return; // Don't expand if no uptimes
     }
@@ -293,43 +309,51 @@ export function NormalOperationTab() {
           break;
       }
 
+      // Format Start - End time for child row
+      const startTime = formatTime(uptime.startTime);
+      const endTime = uptime.endTime ? formatTime(uptime.endTime) : "Ongoing";
+      const startEndTime = `${startTime} - ${endTime}`;
+
       return (
-        <tr key={`${dayData.day}-${index}`} className="bg-gray-50">
-          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900"></td>
-          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
+        <tr key={`${dayData.day}-${index}`} className="bg-gray-100 hover:bg-orange-50">
+          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center"></td>
+          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
+            {startEndTime}
+          </td>
+          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
             {formatDuration(uptime.duration)}
           </td>
-          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
+          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
             {rowTotals.ejigbo_av > 0 ? formatDuration(rowTotals.ejigbo_av) : "-"}
           </td>
-          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
+          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
             {rowTotals.isolo_av > 0 ? formatDuration(rowTotals.isolo_av) : "-"}
           </td>
-          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
+          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
             {rowTotals.g1_av > 0 ? formatDuration(rowTotals.g1_av) : "-"}
           </td>
-          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
+          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
             {rowTotals.g2_av > 0 ? formatDuration(rowTotals.g2_av) : "-"}
           </td>
-          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
+          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
             {rowTotals.g3_av > 0 ? formatDuration(rowTotals.g3_av) : "-"}
           </td>
-          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
+          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
             {rowTotals.g4_av > 0 ? formatDuration(rowTotals.g4_av) : "-"}
           </td>
-          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
+          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
             {rowTotals.g5_av > 0 ? formatDuration(rowTotals.g5_av) : "-"}
           </td>
-          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
+          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
             {rowTotals.g6_av > 0 ? formatDuration(rowTotals.g6_av) : "-"}
           </td>
-          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
+          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
             {rowTotals.ejigbo_uz > 0 ? formatDuration(rowTotals.ejigbo_uz) : "-"}
           </td>
-          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
+          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
             {rowTotals.isolo_uz > 0 ? formatDuration(rowTotals.isolo_uz) : "-"}
           </td>
-          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
+          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
             {rowTotals.generators_uz > 0 ? formatDuration(rowTotals.generators_uz) : "-"}
           </td>
         </tr>
@@ -417,47 +441,67 @@ export function NormalOperationTab() {
 
       {/* Uptime Table */}
       {!loading && (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse border border-gray-300">
+        <>
+          {/* Top Scrollbar */}
+          <div 
+            id="top-scroll"
+            ref={topScrollRef}
+            className="overflow-x-auto overflow-y-hidden mb-2"
+            onScroll={handleTopScroll}
+            style={{ height: '20px' }}
+          >
+            <div style={{ height: '1px' }}></div>
+          </div>
+
+          {/* Main Table with Bottom Scrollbar */}
+          <div 
+            id="bottom-scroll"
+            className="overflow-x-auto"
+            onScroll={handleBottomScroll}
+          >
+            <table ref={tableRef} className="border-collapse border border-gray-300 min-w-full">
             <thead>
               <tr className="bg-gray-100">
-                <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-900">
+                <th className="border border-gray-300 px-4 py-2 text-center text-sm font-semibold text-gray-900 whitespace-nowrap">
                   Day
                 </th>
-                <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-900">
-                  Run Times
+                <th className="border border-gray-300 px-4 py-2 text-center text-sm font-semibold text-gray-900 whitespace-nowrap">
+                  Start - End
                 </th>
-                <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-900">
+                <th className="border border-gray-300 px-4 py-2 text-center text-sm font-semibold text-gray-900 whitespace-nowrap">
+                  Uptime
+                </th>
+                <th className="border border-gray-300 px-4 py-2 text-center text-sm font-semibold text-gray-900 whitespace-nowrap">
                   Ejigbo<sub>av</sub>
                 </th>
-                <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-900">
+                <th className="border border-gray-300 px-4 py-2 text-center text-sm font-semibold text-gray-900 whitespace-nowrap">
                   Isolo<sub>av</sub>
                 </th>
-                <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-900">
+                <th className="border border-gray-300 px-4 py-2 text-center text-sm font-semibold text-gray-900 whitespace-nowrap">
                   G1<sub>av</sub>
                 </th>
-                <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-900">
+                <th className="border border-gray-300 px-4 py-2 text-center text-sm font-semibold text-gray-900 whitespace-nowrap">
                   G2<sub>av</sub>
                 </th>
-                <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-900">
+                <th className="border border-gray-300 px-4 py-2 text-center text-sm font-semibold text-gray-900 whitespace-nowrap">
                   G3<sub>av</sub>
                 </th>
-                <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-900">
+                <th className="border border-gray-300 px-4 py-2 text-center text-sm font-semibold text-gray-900 whitespace-nowrap">
                   G4<sub>av</sub>
                 </th>
-                <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-900">
+                <th className="border border-gray-300 px-4 py-2 text-center text-sm font-semibold text-gray-900 whitespace-nowrap">
                   G5<sub>av</sub>
                 </th>
-                <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-900">
+                <th className="border border-gray-300 px-4 py-2 text-center text-sm font-semibold text-gray-900 whitespace-nowrap">
                   G6<sub>av</sub>
                 </th>
-                <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-900">
+                <th className="border border-gray-300 px-4 py-2 text-center text-sm font-semibold text-gray-900 whitespace-nowrap">
                   Ejigbo<sub>uz</sub>
                 </th>
-                <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-900">
+                <th className="border border-gray-300 px-4 py-2 text-center text-sm font-semibold text-gray-900 whitespace-nowrap">
                   Isolo<sub>uz</sub>
                 </th>
-                <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-900">
+                <th className="border border-gray-300 px-4 py-2 text-center text-sm font-semibold text-gray-900 whitespace-nowrap">
                   Generators<sub>uz</sub>
                 </th>
               </tr>
@@ -468,80 +512,83 @@ export function NormalOperationTab() {
                 const isExpanded = expandedRows.has(day);
                 const hasUptimes = dayData && dayData.uptimes.length > 0;
 
+                // Calculate Start - End range for parent row
+                let startEndRange = "-";
+                if (dayData && dayData.uptimes.length > 0) {
+                  const firstUptime = dayData.uptimes[0];
+                  const lastUptime = dayData.uptimes[dayData.uptimes.length - 1];
+                  const startTime = formatTime(firstUptime.startTime);
+                  // All uptimes are COMPLETE, so endTime will always exist
+                  const endTime = formatTime(lastUptime.endTime!);
+                  startEndRange = `${startTime} - ${endTime}`;
+                }
+
                 const rows = [
                   <tr
                     key={day}
                     onClick={() => toggleRow(day)}
-                    className={`${hasUptimes ? "cursor-pointer hover:bg-gray-100" : ""}`}
+                    className={`${hasUptimes ? "cursor-pointer hover:bg-orange-50" : ""}`}
                   >
-                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
-                      <div className="flex items-center gap-2">
-                        {hasUptimes && (
-                          <>
-                            {isExpanded ? (
-                              <ChevronUp className="h-4 w-4" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4" />
-                            )}
-                          </>
-                        )}
-                        {day}
-                      </div>
+                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
+                      {day}
                     </td>
-                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
-                      {dayData?.totals.runTimes || "-"}
+                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
+                      {startEndRange}
                     </td>
-                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
+                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
+                      {dayData ? dayData.uptimes.length : "-"}
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.ejigbo_av > 0
                         ? formatDuration(dayData.totals.ejigbo_av)
                         : "-"}
                     </td>
-                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
+                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.isolo_av > 0
                         ? formatDuration(dayData.totals.isolo_av)
                         : "-"}
                     </td>
-                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
+                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.g1_av > 0
                         ? formatDuration(dayData.totals.g1_av)
                         : "-"}
                     </td>
-                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
+                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.g2_av > 0
                         ? formatDuration(dayData.totals.g2_av)
                         : "-"}
                     </td>
-                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
+                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.g3_av > 0
                         ? formatDuration(dayData.totals.g3_av)
                         : "-"}
                     </td>
-                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
+                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.g4_av > 0
                         ? formatDuration(dayData.totals.g4_av)
                         : "-"}
                     </td>
-                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
+                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.g5_av > 0
                         ? formatDuration(dayData.totals.g5_av)
                         : "-"}
                     </td>
-                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
+                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.g6_av > 0
                         ? formatDuration(dayData.totals.g6_av)
                         : "-"}
                     </td>
-                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
+                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.ejigbo_uz > 0
                         ? formatDuration(dayData.totals.ejigbo_uz)
                         : "-"}
                     </td>
-                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
+                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.isolo_uz > 0
                         ? formatDuration(dayData.totals.isolo_uz)
                         : "-"}
                     </td>
-                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
+                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.generators_uz > 0
                         ? formatDuration(dayData.totals.generators_uz)
                         : "-"}
@@ -558,6 +605,7 @@ export function NormalOperationTab() {
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );

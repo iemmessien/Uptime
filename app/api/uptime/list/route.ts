@@ -11,24 +11,28 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
+    const status = searchParams.get('status')
 
-    console.log('🔥 Query params:', { startDate, endDate });
+    console.log('🔥 Query params:', { startDate, endDate, status });
 
-    if (!startDate || !endDate) {
-      console.log('❌ Missing date parameters');
-      return NextResponse.json(
-        { success: false, error: 'startDate and endDate are required' },
-        { status: 400 }
-      )
+    // Build where clause based on parameters
+    const whereClause: any = {}
+    
+    // If status is provided, filter by status
+    if (status) {
+      whereClause.status = status
+    }
+    
+    // If dates are provided, filter by date range
+    if (startDate && endDate) {
+      whereClause.date = {
+        gte: new Date(startDate),
+        lte: new Date(endDate),
+      }
     }
 
     const uptimes = await prisma.uptime.findMany({
-      where: {
-        date: {
-         gte: new Date(startDate),
-          lte: new Date(endDate),
-        },
-      },
+      where: whereClause,
       include: {
         ejigbo: true,
         isolo: true,
@@ -52,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     console.log('✅ Fetched uptimes from DB:', uptimes.length);
 
-    // Transform data to include powerSupply name
+    // Transform data to include powerSupply name and all power IDs
     const transformedUptimes = uptimes.map((uptime) => {
       let powerSupply = 'Unknown'
       
@@ -80,6 +84,21 @@ export async function GET(request: NextRequest) {
         duration: uptime.runTime || 0,
         utilization: uptime.utilization || 0,
         testRun: uptime.testRun || false,
+        // Include all power supply IDs for incomplete uptimes table
+        ejigboId: uptime.ejigboId,
+        isoloId: uptime.isoloId,
+        gen1Id: uptime.gen1Id,
+        gen2Id: uptime.gen2Id,
+        gen3Id: uptime.gen3Id,
+        gen4Id: uptime.gen4Id,
+        gen5Id: uptime.gen5Id,
+        gen6Id: uptime.gen6Id,
+        gen7Id: uptime.gen7Id,
+        gen8Id: uptime.gen8Id,
+        gen9Id: uptime.gen9Id,
+        gen10Id: uptime.gen10Id,
+        gen11Id: uptime.gen11Id,
+        gen12Id: uptime.gen12Id,
       }
     })
 

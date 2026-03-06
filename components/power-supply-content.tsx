@@ -4,6 +4,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AddUptimeButton } from "@/components/add-uptime-button";
 import { SingleUtilizationChart } from "@/components/single-utilization-chart";
 import { SingleAvailabilityChart } from "@/components/single-availability-chart";
+import { SingleIncompleteUptimesTable } from "@/components/single-incomplete-uptimes-table";
+import { SinglePowerAvailabilityTable } from "@/components/single-power-availability-table";
+import { SinglePowerUtilizationTable } from "@/components/single-power-utilization-table";
 import { useViewMode } from "@/lib/view-mode-context";
 
 interface PowerSupplyContentProps {
@@ -26,6 +29,9 @@ export function PowerSupplyContent({ title, powerSupply, color }: PowerSupplyCon
 
           {/* Availability Chart */}
           <SingleAvailabilityChart powerSupply={powerSupply} color={color} />
+
+          {/* Incomplete Uptimes Table */}
+          <SingleIncompleteUptimesTable powerSupply={powerSupply} />
         </div>
       </div>
     );
@@ -53,29 +59,18 @@ export function PowerSupplyContent({ title, powerSupply, color }: PowerSupplyCon
 
             {/* Availability Chart */}
             <SingleAvailabilityChart powerSupply={powerSupply} color={color} />
+
+            {/* Incomplete Uptimes Table */}
+            <SingleIncompleteUptimesTable powerSupply={powerSupply} />
           </div>
         </TabsContent>
 
         <TabsContent value="power-availability">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              Power Availability
-            </h2>
-            <p className="text-gray-900">
-              Power availability metrics for {powerSupply}.
-            </p>
-          </div>
+          <SinglePowerAvailabilityTable powerSupply={powerSupply} />
         </TabsContent>
 
         <TabsContent value="power-utilization">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              Power Utilization
-            </h2>
-            <p className="text-gray-900">
-              Power utilization metrics for {powerSupply}.
-            </p>
-          </div>
+          <SinglePowerUtilizationTable powerSupply={powerSupply} />
         </TabsContent>
       </Tabs>
     </div>

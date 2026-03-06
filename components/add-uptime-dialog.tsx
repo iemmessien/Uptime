@@ -36,6 +36,7 @@ export function AddUptimeDialog({ open, onOpenChange }: AddUptimeDialogProps) {
   const [endTime, setEndTime] = useState("")
   const [duration, setDuration] = useState("Unknown")
   const [testRun, setTestRun] = useState("no")
+  const [timeError, setTimeError] = useState("")
   const [powerSelection, setPowerSelection] = useState<PowerSelection>({
     ejigbo: false,
     isolo: false,
@@ -57,6 +58,7 @@ export function AddUptimeDialog({ open, onOpenChange }: AddUptimeDialogProps) {
   useEffect(() => {
     if (!startTime || !endTime) {
       setDuration("Unknown")
+      setTimeError("")
       return
     }
 
@@ -66,15 +68,17 @@ export function AddUptimeDialog({ open, onOpenChange }: AddUptimeDialogProps) {
     const startMinutes = startHour * 60 + startMinute
     const endMinutes = endHour * 60 + endMinute
 
-    let durationMinutes = 0
-
-    // If end time is earlier than start time, assume it's the next day
-    if (endMinutes < startMinutes) {
-      durationMinutes = (1440 - startMinutes) + endMinutes
-    } else {
-      durationMinutes = endMinutes - startMinutes
+    // Check if start time is later than or equal to end time (same day scenario)
+    if (startMinutes >= endMinutes) {
+      setDuration("Invalid")
+      setTimeError("Start Time must be before End Time. Please adjust the times.")
+      return
     }
 
+    // Valid time range - clear error
+    setTimeError("")
+    
+    const durationMinutes = endMinutes - startMinutes
     const hours = Math.floor(durationMinutes / 60)
     const minutes = durationMinutes % 60
 
@@ -95,6 +99,7 @@ export function AddUptimeDialog({ open, onOpenChange }: AddUptimeDialogProps) {
     setEndTime("")
     setDuration("Unknown")
     setTestRun("no")
+    setTimeError("")
     setPowerSelection({
       ejigbo: false,
       isolo: false,
@@ -126,10 +131,30 @@ export function AddUptimeDialog({ open, onOpenChange }: AddUptimeDialogProps) {
       return
     }
 
+    // Validation: Check if date is provided
+    if (!date) {
+      alert("Please select a date before saving.")
+      return
+    }
+
     // Validation: Check if Start Time is provided
     if (!startTime) {
       alert("Please enter a Start Time before saving.")
       return
+    }
+
+    // Validation: Check if End Time is provided and if Start Time is before End Time
+    if (endTime) {
+      const [startHour, startMinute] = startTime.split(':').map(Number)
+      const [endHour, endMinute] = endTime.split(':').map(Number)
+
+      const startMinutes = startHour * 60 + startMinute
+      const endMinutes = endHour * 60 + endMinute
+
+      if (startMinutes >= endMinutes) {
+        alert("Start Time must be before End Time. Please adjust the times.")
+        return
+      }
     }
 
     // Determine status based on End Time
@@ -141,7 +166,7 @@ export function AddUptimeDialog({ open, onOpenChange }: AddUptimeDialogProps) {
         .filter(([, selected]) => selected)
         .map(([key]) => key)
 
-      const response = await fetch('/api/uptime', {
+      const response = await fetch('/uptime/api/uptime', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -290,8 +315,11 @@ export function AddUptimeDialog({ open, onOpenChange }: AddUptimeDialogProps) {
               type="time"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
-              className="w-40"
+              className={`w-40 ${timeError ? 'border-red-500' : ''}`}
             />
+            {timeError && (
+              <p className="text-sm text-red-600 font-medium">{timeError}</p>
+            )}
           </div>
 
           {/* Test Run */}
@@ -318,7 +346,11 @@ export function AddUptimeDialog({ open, onOpenChange }: AddUptimeDialogProps) {
           <Button variant="outline" onClick={handleCancel}>
             Cancel
           </Button>
-          <Button onClick={handleSave} className="bg-orange-500 hover:bg-orange-600 text-white">
+          <Button 
+            onClick={handleSave} 
+            className="bg-orange-500 hover:bg-orange-600 text-white"
+            disabled={!!timeError}
+          >
             Save
           </Button>
         </DialogFooter>
