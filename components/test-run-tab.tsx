@@ -272,22 +272,22 @@ export function TestRunTab() {
             {formatDuration(uptime.duration)}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.g1_test > 0 ? formatDuration(rowTotals.g1_test) : "-"}
+            {rowTotals.g1_test > 0 ? formatDuration(rowTotals.g1_test) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.g2_test > 0 ? formatDuration(rowTotals.g2_test) : "-"}
+            {rowTotals.g2_test > 0 ? formatDuration(rowTotals.g2_test) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.g3_test > 0 ? formatDuration(rowTotals.g3_test) : "-"}
+            {rowTotals.g3_test > 0 ? formatDuration(rowTotals.g3_test) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.g4_test > 0 ? formatDuration(rowTotals.g4_test) : "-"}
+            {rowTotals.g4_test > 0 ? formatDuration(rowTotals.g4_test) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.g5_test > 0 ? formatDuration(rowTotals.g5_test) : "-"}
+            {rowTotals.g5_test > 0 ? formatDuration(rowTotals.g5_test) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.g6_test > 0 ? formatDuration(rowTotals.g6_test) : "-"}
+            {rowTotals.g6_test > 0 ? formatDuration(rowTotals.g6_test) : ""}
           </td>
         </tr>
       );
@@ -430,7 +430,7 @@ export function TestRunTab() {
                   const isExpanded = expandedRows.has(day);
                   const hasUptimes = dayData && dayData.uptimes.length > 0;
 
-                  let startEndRange = "-";
+                  let startEndRange = "";
                   if (dayData && dayData.uptimes.length > 0) {
                     const firstUptime = dayData.uptimes[0];
                     const lastUptime = dayData.uptimes[dayData.uptimes.length - 1];
@@ -452,37 +452,37 @@ export function TestRunTab() {
                         {startEndRange}
                       </td>
                       <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-                        {dayData ? dayData.uptimes.length : "-"}
+                        {dayData ? dayData.uptimes.length : ""}
                       </td>
                       <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                         {dayData && dayData.totals.g1_test > 0
                           ? formatDuration(dayData.totals.g1_test)
-                          : "-"}
+                          : ""}
                       </td>
                       <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                         {dayData && dayData.totals.g2_test > 0
                           ? formatDuration(dayData.totals.g2_test)
-                          : "-"}
+                          : ""}
                       </td>
                       <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                         {dayData && dayData.totals.g3_test > 0
                           ? formatDuration(dayData.totals.g3_test)
-                          : "-"}
+                          : ""}
                       </td>
                       <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                         {dayData && dayData.totals.g4_test > 0
                           ? formatDuration(dayData.totals.g4_test)
-                          : "-"}
+                          : ""}
                       </td>
                       <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                         {dayData && dayData.totals.g5_test > 0
                           ? formatDuration(dayData.totals.g5_test)
-                          : "-"}
+                          : ""}
                       </td>
                       <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                         {dayData && dayData.totals.g6_test > 0
                           ? formatDuration(dayData.totals.g6_test)
-                          : "-"}
+                          : ""}
                       </td>
                     </tr>
                   ];

@@ -324,37 +324,37 @@ export function NormalOperationTab() {
             {formatDuration(uptime.duration)}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.ejigbo_av > 0 ? formatDuration(rowTotals.ejigbo_av) : "-"}
+            {rowTotals.ejigbo_av > 0 ? formatDuration(rowTotals.ejigbo_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.isolo_av > 0 ? formatDuration(rowTotals.isolo_av) : "-"}
+            {rowTotals.isolo_av > 0 ? formatDuration(rowTotals.isolo_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.g1_av > 0 ? formatDuration(rowTotals.g1_av) : "-"}
+            {rowTotals.g1_av > 0 ? formatDuration(rowTotals.g1_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.g2_av > 0 ? formatDuration(rowTotals.g2_av) : "-"}
+            {rowTotals.g2_av > 0 ? formatDuration(rowTotals.g2_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.g3_av > 0 ? formatDuration(rowTotals.g3_av) : "-"}
+            {rowTotals.g3_av > 0 ? formatDuration(rowTotals.g3_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.g4_av > 0 ? formatDuration(rowTotals.g4_av) : "-"}
+            {rowTotals.g4_av > 0 ? formatDuration(rowTotals.g4_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.g5_av > 0 ? formatDuration(rowTotals.g5_av) : "-"}
+            {rowTotals.g5_av > 0 ? formatDuration(rowTotals.g5_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.g6_av > 0 ? formatDuration(rowTotals.g6_av) : "-"}
+            {rowTotals.g6_av > 0 ? formatDuration(rowTotals.g6_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.ejigbo_uz > 0 ? formatDuration(rowTotals.ejigbo_uz) : "-"}
+            {rowTotals.ejigbo_uz > 0 ? formatDuration(rowTotals.ejigbo_uz) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.isolo_uz > 0 ? formatDuration(rowTotals.isolo_uz) : "-"}
+            {rowTotals.isolo_uz > 0 ? formatDuration(rowTotals.isolo_uz) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.generators_uz > 0 ? formatDuration(rowTotals.generators_uz) : "-"}
+            {rowTotals.generators_uz > 0 ? formatDuration(rowTotals.generators_uz) : ""}
           </td>
         </tr>
       );
@@ -513,7 +513,7 @@ export function NormalOperationTab() {
                 const hasUptimes = dayData && dayData.uptimes.length > 0;
 
                 // Calculate Start - End range for parent row
-                let startEndRange = "-";
+                let startEndRange = "";
                 if (dayData && dayData.uptimes.length > 0) {
                   const firstUptime = dayData.uptimes[0];
                   const lastUptime = dayData.uptimes[dayData.uptimes.length - 1];
@@ -536,62 +536,62 @@ export function NormalOperationTab() {
                       {startEndRange}
                     </td>
                     <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-                      {dayData ? dayData.uptimes.length : "-"}
+                      {dayData ? dayData.uptimes.length : ""}
                     </td>
                     <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.ejigbo_av > 0
                         ? formatDuration(dayData.totals.ejigbo_av)
-                        : "-"}
+                        : ""}
                     </td>
                     <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.isolo_av > 0
                         ? formatDuration(dayData.totals.isolo_av)
-                        : "-"}
+                        : ""}
                     </td>
                     <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.g1_av > 0
                         ? formatDuration(dayData.totals.g1_av)
-                        : "-"}
+                        : ""}
                     </td>
                     <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.g2_av > 0
                         ? formatDuration(dayData.totals.g2_av)
-                        : "-"}
+                        : ""}
                     </td>
                     <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.g3_av > 0
                         ? formatDuration(dayData.totals.g3_av)
-                        : "-"}
+                        : ""}
                     </td>
                     <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.g4_av > 0
                         ? formatDuration(dayData.totals.g4_av)
-                        : "-"}
+                        : ""}
                     </td>
                     <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.g5_av > 0
                         ? formatDuration(dayData.totals.g5_av)
-                        : "-"}
+                        : ""}
                     </td>
                     <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.g6_av > 0
                         ? formatDuration(dayData.totals.g6_av)
-                        : "-"}
+                        : ""}
                     </td>
                     <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.ejigbo_uz > 0
                         ? formatDuration(dayData.totals.ejigbo_uz)
-                        : "-"}
+                        : ""}
                     </td>
                     <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.isolo_uz > 0
                         ? formatDuration(dayData.totals.isolo_uz)
-                        : "-"}
+                        : ""}
                     </td>
                     <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.generators_uz > 0
                         ? formatDuration(dayData.totals.generators_uz)
-                        : "-"}
+                        : ""}
                     </td>
                   </tr>
                 ];

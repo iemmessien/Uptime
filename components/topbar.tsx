@@ -83,7 +83,7 @@ export function Topbar({ username, onToggleSidebar }: TopbarProps) {
           className="h-10 w-auto"
         />
         <span className="font-semibold text-gray-900 hidden sm:inline">
-          Uptime Monitoring
+          Uptime Monitor
         </span>
       </button>
 

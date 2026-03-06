@@ -264,13 +264,13 @@ export function PowerUtilizationTab() {
             {formatDuration(uptime.duration)}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.ejigbo_uz > 0 ? formatDuration(rowTotals.ejigbo_uz) : "-"}
+            {rowTotals.ejigbo_uz > 0 ? formatDuration(rowTotals.ejigbo_uz) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.isolo_uz > 0 ? formatDuration(rowTotals.isolo_uz) : "-"}
+            {rowTotals.isolo_uz > 0 ? formatDuration(rowTotals.isolo_uz) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.generators_uz > 0 ? formatDuration(rowTotals.generators_uz) : "-"}
+            {rowTotals.generators_uz > 0 ? formatDuration(rowTotals.generators_uz) : ""}
           </td>
         </tr>
       );
@@ -405,7 +405,7 @@ export function PowerUtilizationTab() {
                 const hasUptimes = dayData && dayData.uptimes.length > 0;
 
                 // Calculate Start - End range for parent row
-                let startEndRange = "-";
+                let startEndRange = "";
                 if (dayData && dayData.uptimes.length > 0) {
                   const firstUptime = dayData.uptimes[0];
                   const lastUptime = dayData.uptimes[dayData.uptimes.length - 1];
@@ -428,22 +428,22 @@ export function PowerUtilizationTab() {
                       {startEndRange}
                     </td>
                     <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-                      {dayData ? dayData.uptimes.length : "-"}
+                      {dayData ? dayData.uptimes.length : ""}
                     </td>
                     <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.ejigbo_uz > 0
                         ? formatDuration(dayData.totals.ejigbo_uz)
-                        : "-"}
+                        : ""}
                     </td>
                     <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.isolo_uz > 0
                         ? formatDuration(dayData.totals.isolo_uz)
-                        : "-"}
+                        : ""}
                     </td>
                     <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.generators_uz > 0
                         ? formatDuration(dayData.totals.generators_uz)
-                        : "-"}
+                        : ""}
                     </td>
                   </tr>
                 ];
