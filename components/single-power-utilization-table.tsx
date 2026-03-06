@@ -34,6 +34,7 @@ interface UptimeRecord {
   startTime: string;
   endTime: string | null;
   duration: number;
+  utilization: number;
   powerSupply: string;
   ejigboId?: number;
   isoloId?: number;
@@ -54,7 +55,7 @@ interface UptimeRecord {
 interface DayData {
   day: number;
   uptimes: UptimeRecord[];
-  availability: number;
+  utilization: number;
 }
 
 function getDaysInMonth(month: number, year: number): number {
@@ -74,11 +75,11 @@ function formatTime(timeString: string): string {
   return `${hours}:${minutes}`;
 }
 
-interface SinglePowerAvailabilityTableProps {
+interface SinglePowerUtilizationTableProps {
   powerSupply: string;
 }
 
-export function SinglePowerAvailabilityTable({ powerSupply }: SinglePowerAvailabilityTableProps) {
+export function SinglePowerUtilizationTable({ powerSupply }: SinglePowerUtilizationTableProps) {
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
@@ -147,7 +148,7 @@ export function SinglePowerAvailabilityTable({ powerSupply }: SinglePowerAvailab
         dayMap.set(day, {
           day,
           uptimes: [],
-          availability: 0,
+          utilization: 0,
         });
       }
 
@@ -170,7 +171,7 @@ export function SinglePowerAvailabilityTable({ powerSupply }: SinglePowerAvailab
         const dayData = dayMap.get(day);
         if (dayData) {
           dayData.uptimes.push(uptime);
-          dayData.availability += uptime.duration;
+          dayData.utilization += uptime.utilization;
         }
       });
 
@@ -234,7 +235,7 @@ export function SinglePowerAvailabilityTable({ powerSupply }: SinglePowerAvailab
             {formatDuration(uptime.duration)}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {formatDuration(uptime.duration)}
+            {uptime.utilization}%
           </td>
         </tr>
       );
@@ -274,14 +275,14 @@ export function SinglePowerAvailabilityTable({ powerSupply }: SinglePowerAvailab
 
         <div className="flex items-center gap-3">
           <div className="flex flex-col gap-1">
-            <label htmlFor="month-select-spa" className="text-xs font-medium text-gray-700">
+            <label htmlFor="month-select-spu" className="text-xs font-medium text-gray-700">
               Month
             </label>
             <Select
               value={selectedMonth.toString()}
               onValueChange={(value) => setSelectedMonth(parseInt(value))}
             >
-              <SelectTrigger id="month-select-spa" className="w-[180px]">
+              <SelectTrigger id="month-select-spu" className="w-[180px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -295,14 +296,14 @@ export function SinglePowerAvailabilityTable({ powerSupply }: SinglePowerAvailab
           </div>
 
           <div className="flex flex-col gap-1">
-            <label htmlFor="year-select-spa" className="text-xs font-medium text-gray-700">
+            <label htmlFor="year-select-spu" className="text-xs font-medium text-gray-700">
               Year
             </label>
             <Select
               value={selectedYear.toString()}
               onValueChange={(value) => setSelectedYear(parseInt(value))}
             >
-              <SelectTrigger id="year-select-spa" className="w-[120px]">
+              <SelectTrigger id="year-select-spu" className="w-[120px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -327,7 +328,7 @@ export function SinglePowerAvailabilityTable({ powerSupply }: SinglePowerAvailab
         <>
           {/* Top Scrollbar */}
           <div 
-            id="top-scroll-spa"
+            id="top-scroll-spu"
             ref={topScrollRef}
             className="overflow-x-auto overflow-y-hidden mb-2"
             onScroll={handleTopScroll}
@@ -355,7 +356,7 @@ export function SinglePowerAvailabilityTable({ powerSupply }: SinglePowerAvailab
                     Uptime
                   </th>
                   <th className="border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900 whitespace-nowrap text-center">
-                    Availability
+                    Utilization
                   </th>
                 </tr>
               </thead>
@@ -401,6 +402,9 @@ export function SinglePowerAvailabilityTable({ powerSupply }: SinglePowerAvailab
                   const dayOfWeek = new Date(selectedYear, selectedMonth, day).toLocaleDateString('en-US', { weekday: 'short' });
                   const formattedDate = `${dayOfWeek}, ${MONTHS[selectedMonth].slice(0, 3)} ${day}, ${selectedYear}`;
 
+                  // Calculate average utilization for parent row
+                  const avgUtilization = Math.round(dayData.utilization / uptimeCount);
+
                   return [
                     <tr
                       key={day}
@@ -417,7 +421,7 @@ export function SinglePowerAvailabilityTable({ powerSupply }: SinglePowerAvailab
                         {uptimeCount}
                       </td>
                       <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-                        {formatDuration(dayData.availability)}
+                        {avgUtilization}%
                       </td>
                     </tr>,
                     ...(isExpanded ? renderChildRows(dayData) : [])

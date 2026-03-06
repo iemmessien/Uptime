@@ -182,7 +182,7 @@ export function IncompleteUptimesTable() {
                   <Button
                     size="sm"
                     onClick={() => handleComplete(uptime.id)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    className="bg-red-600 hover:bg-red-700 text-white"
                   >
                     Complete
                   </Button>
