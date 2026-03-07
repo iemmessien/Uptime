@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
+import { CompleteUptimeDialog } from "@/components/complete-uptime-dialog";
 
 interface IncompleteUptime {
   id: number;
@@ -48,6 +49,8 @@ const POWER_SUPPLIES = [
 export function IncompleteUptimesTable() {
   const [incompleteUptimes, setIncompleteUptimes] = useState<IncompleteUptime[]>([]);
   const [loading, setLoading] = useState(false);
+  const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
+  const [selectedUptime, setSelectedUptime] = useState<IncompleteUptime | null>(null);
 
   useEffect(() => {
     fetchIncompleteUptimes();
@@ -102,10 +105,9 @@ export function IncompleteUptimesTable() {
     }
   };
 
-  const handleComplete = (uptimeId: number) => {
-    // TODO: Open the edit dialog with the uptime data pre-filled
-    // This will be implemented when we create the edit/complete dialog
-    console.log("Complete uptime:", uptimeId);
+  const handleComplete = (uptime: IncompleteUptime) => {
+    setSelectedUptime(uptime);
+    setCompleteDialogOpen(true);
   };
 
   if (loading) {
@@ -181,7 +183,7 @@ export function IncompleteUptimesTable() {
                 <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                   <Button
                     size="sm"
-                    onClick={() => handleComplete(uptime.id)}
+                    onClick={() => handleComplete(uptime)}
                     className="bg-red-600 hover:bg-red-700 text-white"
                   >
                     Complete
@@ -192,6 +194,14 @@ export function IncompleteUptimesTable() {
           </tbody>
         </table>
       </div>
+
+      <CompleteUptimeDialog
+        open={completeDialogOpen}
+        onOpenChange={setCompleteDialogOpen}
+        uptimeId={selectedUptime?.id || null}
+        date={selectedUptime?.date || ""}
+        startTime={selectedUptime?.startTime || ""}
+      />
     </div>
   );
 }

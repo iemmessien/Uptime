@@ -13,7 +13,7 @@ export default async function Generator11Page() {
   return (
     <DashboardLayout username={user.username}>
       <GeneratorContent 
-        title="Generator 11" 
+        title="Generator 11 - Trend" 
         powerSupply="Generator 11" 
         color="#F59E0B" 
       />

@@ -36,16 +36,6 @@ function getDaysInMonth(month: number, year: number): number {
   return new Date(year, month + 1, 0).getDate();
 }
 
-// Generate sample data for utilization (in hours)
-function generateSingleUtilizationData(daysInMonth: number) {
-  const data = [];
-  for (let i = 1; i <= daysInMonth; i++) {
-    // Random hours between 0-24 for demo purposes
-    data.push(Math.random() * 20 + 2);
-  }
-  return data;
-}
-
 interface SingleUtilizationChartProps {
   powerSupply: string;
   color?: string;
@@ -59,6 +49,8 @@ export function SingleUtilizationChart({
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [mounted, setMounted] = useState(false);
+  const [chartData, setChartData] = useState<number[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const daysInMonth = getDaysInMonth(selectedMonth, selectedYear);
   const categories = Array.from({ length: daysInMonth }, (_, i) => `Day ${i + 1}`);
@@ -66,6 +58,55 @@ export function SingleUtilizationChart({
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    fetchUtilizationData();
+  }, [selectedMonth, selectedYear, powerSupply]);
+
+  const fetchUtilizationData = async () => {
+    setLoading(true);
+    try {
+      const startDate = new Date(selectedYear, selectedMonth, 1);
+      const endDate = new Date(selectedYear, selectedMonth + 1, 0);
+
+      const response = await fetch(
+        `/uptime/api/uptime?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch uptime data');
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.uptimes) {
+        // Initialize array with zeros for all days
+        const utilizationByDay = Array(daysInMonth).fill(0);
+
+        // Process uptimes and aggregate utilization by day for this specific power supply
+        data.uptimes.forEach((uptime: any) => {
+          // Match power supply name
+          if (uptime.powerSupply === powerSupply) {
+            const uptimeDate = new Date(uptime.date);
+            const day = uptimeDate.getDate() - 1; // 0-indexed
+
+            if (day >= 0 && day < daysInMonth) {
+              const utilizationHours = uptime.utilization / 60; // Convert minutes to hours
+              utilizationByDay[day] += utilizationHours;
+            }
+          }
+        });
+
+        setChartData(utilizationByDay);
+      }
+    } catch (error) {
+      console.error('Error fetching utilization data:', error);
+      // Set empty data on error
+      setChartData(Array(daysInMonth).fill(0));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handlePreviousMonth = () => {
     if (selectedMonth === 0) {
@@ -84,8 +125,6 @@ export function SingleUtilizationChart({
       setSelectedMonth(selectedMonth + 1);
     }
   };
-
-  const data = generateSingleUtilizationData(daysInMonth);
 
   const chartOptions: ApexCharts.ApexOptions = {
     chart: {
@@ -162,7 +201,7 @@ export function SingleUtilizationChart({
   const series = [
     {
       name: `${powerSupply} (Utilization)`,
-      data: data,
+      data: chartData,
     },
   ];
 

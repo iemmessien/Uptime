@@ -36,27 +36,13 @@ function getDaysInMonth(month: number, year: number): number {
   return new Date(year, month + 1, 0).getDate();
 }
 
-// Generate sample data for utilization (in hours)
-function generateUtilizationData(daysInMonth: number) {
-  const ejigboData = [];
-  const isoloData = [];
-  const generatorsData = [];
-
-  for (let i = 1; i <= daysInMonth; i++) {
-    // Random hours between 0-24 for demo purposes
-    ejigboData.push(Math.random() * 20 + 2);
-    isoloData.push(Math.random() * 20 + 2);
-    generatorsData.push(Math.random() * 18 + 3);
-  }
-
-  return { ejigboData, isoloData, generatorsData };
-}
-
 export function UtilizationChart() {
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [mounted, setMounted] = useState(false);
+  const [chartData, setChartData] = useState({ ejigboData: [], isoloData: [], generatorsData: [] });
+  const [loading, setLoading] = useState(true);
 
   const daysInMonth = getDaysInMonth(selectedMonth, selectedYear);
   const categories = Array.from({ length: daysInMonth }, (_, i) => `Day ${i + 1}`);
@@ -64,6 +50,66 @@ export function UtilizationChart() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    fetchUtilizationData();
+  }, [selectedMonth, selectedYear]);
+
+  const fetchUtilizationData = async () => {
+    setLoading(true);
+    try {
+      const startDate = new Date(selectedYear, selectedMonth, 1);
+      const endDate = new Date(selectedYear, selectedMonth + 1, 0);
+
+      const response = await fetch(
+        `/uptime/api/uptime?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch uptime data');
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.uptimes) {
+        // Initialize arrays with zeros for all days
+        const ejigboData = Array(daysInMonth).fill(0);
+        const isoloData = Array(daysInMonth).fill(0);
+        const generatorsData = Array(daysInMonth).fill(0);
+
+        // Process uptimes and aggregate utilization by day
+        data.uptimes.forEach((uptime: any) => {
+          const uptimeDate = new Date(uptime.date);
+          const day = uptimeDate.getDate() - 1; // 0-indexed
+
+          if (day >= 0 && day < daysInMonth) {
+            const utilizationHours = uptime.utilization / 60; // Convert minutes to hours
+
+            if (uptime.powerSupply === 'Ejigbo') {
+              ejigboData[day] += utilizationHours;
+            } else if (uptime.powerSupply === 'Isolo') {
+              isoloData[day] += utilizationHours;
+            } else if (uptime.powerSupply.startsWith('Generator')) {
+              // Aggregate all generators
+              generatorsData[day] += utilizationHours;
+            }
+          }
+        });
+
+        setChartData({ ejigboData, isoloData, generatorsData });
+      }
+    } catch (error) {
+      console.error('Error fetching utilization data:', error);
+      // Set empty data on error
+      setChartData({ 
+        ejigboData: Array(daysInMonth).fill(0), 
+        isoloData: Array(daysInMonth).fill(0), 
+        generatorsData: Array(daysInMonth).fill(0) 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handlePreviousMonth = () => {
     if (selectedMonth === 0) {
@@ -83,7 +129,7 @@ export function UtilizationChart() {
     }
   };
 
-  const { ejigboData, isoloData, generatorsData } = generateUtilizationData(daysInMonth);
+  const { ejigboData, isoloData, generatorsData } = chartData;
 
   const chartOptions: ApexCharts.ApexOptions = {
     chart: {

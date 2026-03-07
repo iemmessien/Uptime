@@ -36,41 +36,13 @@ function getDaysInMonth(month: number, year: number): number {
   return new Date(year, month + 1, 0).getDate();
 }
 
-// Generate sample data for availability (in hours)
-function generateAvailabilityData(daysInMonth: number) {
-  const ejigboData = [];
-  const isoloData = [];
-  const generatorsData = [];
-
-  for (let i = 1; i <= daysInMonth; i++) {
-    // Random hours between 0-24 for demo purposes
-    const ejigbo = Math.random() * 20 + 2;
-    const isolo = Math.random() * 20 + 2;
-
-    // Generators availability is sum of G1 to G6
-    // Each generator has random availability
-    const g1 = Math.random() * 4;
-    const g2 = Math.random() * 4;
-    const g3 = Math.random() * 4;
-    const g4 = Math.random() * 4;
-    const g5 = Math.random() * 4;
-    const g6 = Math.random() * 4;
-
-    const generatorsSum = g1 + g2 + g3 + g4 + g5 + g6;
-
-    ejigboData.push(ejigbo);
-    isoloData.push(isolo);
-    generatorsData.push(Math.min(generatorsSum, 24)); // Cap at 24 hours
-  }
-
-  return { ejigboData, isoloData, generatorsData };
-}
-
 export function AvailabilityChart() {
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [mounted, setMounted] = useState(false);
+  const [chartData, setChartData] = useState({ ejigboData: [], isoloData: [], generatorsData: [] });
+  const [loading, setLoading] = useState(true);
 
   const daysInMonth = getDaysInMonth(selectedMonth, selectedYear);
   const categories = Array.from({ length: daysInMonth }, (_, i) => `Day ${i + 1}`);
@@ -78,6 +50,66 @@ export function AvailabilityChart() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    fetchAvailabilityData();
+  }, [selectedMonth, selectedYear]);
+
+  const fetchAvailabilityData = async () => {
+    setLoading(true);
+    try {
+      const startDate = new Date(selectedYear, selectedMonth, 1);
+      const endDate = new Date(selectedYear, selectedMonth + 1, 0);
+
+      const response = await fetch(
+        `/uptime/api/uptime?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch uptime data');
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.uptimes) {
+        // Initialize arrays with zeros for all days
+        const ejigboData = Array(daysInMonth).fill(0);
+        const isoloData = Array(daysInMonth).fill(0);
+        const generatorsData = Array(daysInMonth).fill(0);
+
+        // Process uptimes and aggregate run time (availability) by day
+        data.uptimes.forEach((uptime: any) => {
+          const uptimeDate = new Date(uptime.date);
+          const day = uptimeDate.getDate() - 1; // 0-indexed
+
+          if (day >= 0 && day < daysInMonth) {
+            const durationHours = uptime.duration / 60; // Convert minutes to hours
+
+            if (uptime.powerSupply === 'Ejigbo') {
+              ejigboData[day] += durationHours;
+            } else if (uptime.powerSupply === 'Isolo') {
+              isoloData[day] += durationHours;
+            } else if (uptime.powerSupply.startsWith('Generator')) {
+              // Aggregate all generators
+              generatorsData[day] += durationHours;
+            }
+          }
+        });
+
+        setChartData({ ejigboData, isoloData, generatorsData });
+      }
+    } catch (error) {
+      console.error('Error fetching availability data:', error);
+      // Set empty data on error
+      setChartData({ 
+        ejigboData: Array(daysInMonth).fill(0), 
+        isoloData: Array(daysInMonth).fill(0), 
+        generatorsData: Array(daysInMonth).fill(0) 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handlePreviousMonth = () => {
     if (selectedMonth === 0) {
@@ -97,7 +129,7 @@ export function AvailabilityChart() {
     }
   };
 
-  const { ejigboData, isoloData, generatorsData } = generateAvailabilityData(daysInMonth);
+  const { ejigboData, isoloData, generatorsData } = chartData;
 
   const chartOptions: ApexCharts.ApexOptions = {
     chart: {

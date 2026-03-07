@@ -13,7 +13,7 @@ export default async function IsoloPage() {
   return (
     <DashboardLayout username={user.username}>
       <PowerSupplyContent 
-        title="Isolo Grid" 
+        title="Isolo Grid - Trend" 
         powerSupply="Isolo" 
         color="#10B981" 
       />

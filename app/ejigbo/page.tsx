@@ -13,7 +13,7 @@ export default async function EjigboPage() {
   return (
     <DashboardLayout username={user.username}>
       <PowerSupplyContent 
-        title="Ejigbo Grid" 
+        title="Ejigbo Grid - Trend" 
         powerSupply="Ejigbo" 
         color="#3B82F6" 
       />

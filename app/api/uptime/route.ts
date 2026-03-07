@@ -113,21 +113,68 @@ export async function POST(request: NextRequest) {
     const startDateTime = new Date(`${date}T${startTime}`)
     const endDateTime = endTime ? new Date(`${date}T${endTime}`) : null
 
-    // Calculate run time in minutes if end time is provided
+    // Calculate run time in minutes if end time is provided (this is the Availability)
     let runTime = 0
-    let utilization = 0
 
     if (endDateTime) {
       runTime = Math.floor((endDateTime.getTime() - startDateTime.getTime()) / 1000 / 60)
-      // Calculate utilization as percentage of day (1440 minutes)
-      utilization = (runTime / 1440) * 100
     }
 
     // Generate day number (e.g., "2026022701")
     const dayNumber = `${selectedDate.getFullYear()}${String(selectedDate.getMonth() + 1).padStart(2, '0')}${String(selectedDate.getDate()).padStart(2, '0')}01`
 
+    // Determine which power supplies are selected
+    const isEjigboSelected = powers.includes('ejigbo')
+    const isIsoloSelected = powers.includes('isolo')
+    const isTestRun = testRun === true
+
+    // Helper function to calculate utilization based on rules
+    const calculateUtilization = (power: string): number => {
+      // If no end time, utilization is 0
+      if (!endDateTime) {
+        return 0
+      }
+
+      // Rule 1: If Test Run is Yes, utilization is always 0
+      if (isTestRun) {
+        return 0
+      }
+
+      // Rule 2: If Ejigbo is selected
+      if (isEjigboSelected) {
+        // Ejigbo gets 100% of its availability
+        if (power === 'ejigbo') {
+          return runTime
+        }
+        // All other power supplies get 0 utilization
+        return 0
+      }
+
+      // Rule 3: If Ejigbo is NOT selected but Isolo is selected
+      if (!isEjigboSelected && isIsoloSelected) {
+        // Isolo gets 50% of its availability
+        if (power === 'isolo') {
+          return runTime * 0.5
+        }
+        // Generators 1-6 combined would get 50%, but since we're creating individual records,
+        // we set individual generator utilization to 0 here
+        // The combined generators utilization will be calculated in the frontend/queries
+        if (['gen1', 'gen2', 'gen3', 'gen4', 'gen5', 'gen6'].includes(power)) {
+          return 0
+        }
+        // Other generators (7-12) get 0
+        return 0
+      }
+
+      // Rule 4: If neither Ejigbo nor Isolo is selected
+      // All power supplies get 0 utilization
+      return 0
+    }
+
     // Create uptime records for each selected power supply
     const uptimePromises = powers.map(async (power: string) => {
+      const utilization = calculateUtilization(power)
+
       const uptimeData = {
         startTime: startDateTime,
         endTime: endDateTime || startDateTime,
