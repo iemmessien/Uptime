@@ -103,6 +103,230 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function PUT(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams
+    const id = searchParams.get('id')
+    
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: 'Uptime ID is required' },
+        { status: 400 }
+      )
+    }
+
+    const body = await request.json()
+    const { date, startTime, endTime, testRun, status, powers } = body
+
+    // Parse date and times
+    const selectedDate = new Date(date)
+    const startDateTime = new Date(`${date}T${startTime}`)
+    const endDateTime = endTime ? new Date(`${date}T${endTime}`) : null
+
+    // Calculate run time in minutes if end time is provided
+    let runTime = 0
+    if (endDateTime) {
+      runTime = Math.floor((endDateTime.getTime() - startDateTime.getTime()) / 1000 / 60)
+    }
+
+    // Generate day number
+    const dayNumber = `${selectedDate.getFullYear()}${String(selectedDate.getMonth() + 1).padStart(2, '0')}${String(selectedDate.getDate()).padStart(2, '0')}01`
+
+    const isEjigboSelected = powers.includes('ejigbo')
+    const isIsoloSelected = powers.includes('isolo')
+    const isTestRun = testRun === true
+
+    const calculateUtilization = (power: string): number => {
+      if (!endDateTime) return 0
+      if (isTestRun) return 0
+      if (isEjigboSelected) {
+        if (power === 'ejigbo') return runTime
+        return 0
+      }
+      if (!isEjigboSelected && isIsoloSelected) {
+        if (power === 'isolo') return runTime * 0.5
+        if (['gen1', 'gen2', 'gen3', 'gen4', 'gen5', 'gen6'].includes(power)) return 0
+        return 0
+      }
+      return 0
+    }
+
+    // First, find all existing uptime records with matching date, startTime, and testRun
+    // This helps us identify all records from the same "uptime event"
+    const existingUptimes = await prisma.uptime.findMany({
+      where: {
+        date: selectedDate,
+        startTime: startDateTime,
+        testRun: isTestRun,
+      }
+    })
+
+    // Delete all existing records from this uptime event
+    await prisma.uptime.deleteMany({
+      where: {
+        id: {
+          in: existingUptimes.map(u => u.id)
+        }
+      }
+    })
+
+    // Create new uptime records for each selected power supply
+    const uptimePromises = powers.map(async (power: string) => {
+      const utilization = calculateUtilization(power)
+
+      const uptimeData = {
+        startTime: startDateTime,
+        endTime: endDateTime || startDateTime,
+        runTime,
+        utilization,
+        testRun,
+        status,
+        date: selectedDate,
+        dayNumber,
+      }
+
+      const relationKey = `${power}Id`
+      let powerSupplyId: string | null = null
+
+      switch (power) {
+        case 'ejigbo':
+          const ejigbo = await prisma.ejigbo.findFirst()
+          powerSupplyId = ejigbo?.id || null
+          break
+        case 'isolo':
+          const isolo = await prisma.isolo.findFirst()
+          powerSupplyId = isolo?.id || null
+          break
+        case 'gen1':
+          const gen1 = await prisma.gen1.findFirst()
+          powerSupplyId = gen1?.id || null
+          break
+        case 'gen2':
+          const gen2 = await prisma.gen2.findFirst()
+          powerSupplyId = gen2?.id || null
+          break
+        case 'gen3':
+          const gen3 = await prisma.gen3.findFirst()
+          powerSupplyId = gen3?.id || null
+          break
+        case 'gen4':
+          const gen4 = await prisma.gen4.findFirst()
+          powerSupplyId = gen4?.id || null
+          break
+        case 'gen5':
+          const gen5 = await prisma.gen5.findFirst()
+          powerSupplyId = gen5?.id || null
+          break
+        case 'gen6':
+          const gen6 = await prisma.gen6.findFirst()
+          powerSupplyId = gen6?.id || null
+          break
+        case 'gen7':
+          const gen7 = await prisma.gen7.findFirst()
+          powerSupplyId = gen7?.id || null
+          break
+        case 'gen8':
+          const gen8 = await prisma.gen8.findFirst()
+          powerSupplyId = gen8?.id || null
+          break
+        case 'gen9':
+          const gen9 = await prisma.gen9.findFirst()
+          powerSupplyId = gen9?.id || null
+          break
+        case 'gen10':
+          const gen10 = await prisma.gen10.findFirst()
+          powerSupplyId = gen10?.id || null
+          break
+        case 'gen11':
+          const gen11 = await prisma.gen11.findFirst()
+          powerSupplyId = gen11?.id || null
+          break
+        case 'gen12':
+          const gen12 = await prisma.gen12.findFirst()
+          powerSupplyId = gen12?.id || null
+          break
+      }
+
+      if (powerSupplyId) {
+        return prisma.uptime.create({
+          data: {
+            ...uptimeData,
+            [relationKey]: powerSupplyId,
+          },
+        })
+      }
+      
+      return null
+    })
+
+    const results = await Promise.all(uptimePromises)
+    const successfulRecords = results.filter(r => r !== null)
+
+    return NextResponse.json({
+      success: true,
+      message: `Updated uptime - created ${successfulRecords.length} record(s)`,
+      data: successfulRecords,
+    })
+  } catch (error) {
+    console.error('Error updating uptime:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to update uptime record' },
+      { status: 500 }
+    )
+  } finally {
+    await prisma.$disconnect()
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams
+    const id = searchParams.get('id')
+    
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: 'Uptime ID is required' },
+        { status: 400 }
+      )
+    }
+
+    // Find the uptime record to get its date and startTime
+    const uptime = await prisma.uptime.findUnique({
+      where: { id: id }
+    })
+
+    if (!uptime) {
+      return NextResponse.json(
+        { success: false, error: 'Uptime not found' },
+        { status: 404 }
+      )
+    }
+
+    // Delete all records with matching date, startTime, and testRun
+    // This ensures we delete the entire "uptime event" across all power supplies
+    const deleteResult = await prisma.uptime.deleteMany({
+      where: {
+        date: uptime.date,
+        startTime: uptime.startTime,
+        testRun: uptime.testRun,
+      }
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: `Deleted ${deleteResult.count} uptime record(s)`,
+    })
+  } catch (error) {
+    console.error('Error deleting uptime:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to delete uptime record' },
+      { status: 500 }
+    )
+  } finally {
+    await prisma.$disconnect()
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()

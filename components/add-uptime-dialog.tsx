@@ -7,10 +7,19 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { toast } from "sonner"
 
 interface AddUptimeDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  uptimeId?: number | null  // If provided, we're editing an existing uptime
+  existingData?: {
+    date: string
+    startTime: string
+    endTime?: string
+    testRun: boolean
+    powers: string[]
+  } | null
 }
 
 interface PowerSelection {
@@ -30,7 +39,7 @@ interface PowerSelection {
   gen12: boolean
 }
 
-export function AddUptimeDialog({ open, onOpenChange }: AddUptimeDialogProps) {
+export function AddUptimeDialog({ open, onOpenChange, uptimeId = null, existingData = null }: AddUptimeDialogProps) {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [startTime, setStartTime] = useState("")
   const [endTime, setEndTime] = useState("")
@@ -53,6 +62,48 @@ export function AddUptimeDialog({ open, onOpenChange }: AddUptimeDialogProps) {
     gen11: false,
     gen12: false,
   })
+
+  // Load existing data when editing
+  useEffect(() => {
+    if (existingData && open) {
+      // Format date to YYYY-MM-DD for the date input
+      const dateObj = new Date(existingData.date)
+      const formattedDate = dateObj.toISOString().split('T')[0]
+      setDate(formattedDate)
+      
+      // Extract time from ISO datetime string
+      const startTimeStr = new Date(existingData.startTime).toTimeString().substring(0, 5)
+      setStartTime(startTimeStr)
+      
+      if (existingData.endTime) {
+        const endTimeStr = new Date(existingData.endTime).toTimeString().substring(0, 5)
+        setEndTime(endTimeStr)
+      } else {
+        setEndTime("")
+      }
+      
+      setTestRun(existingData.testRun ? "yes" : "no")
+      
+      // Set power selections
+      const newPowerSelection: PowerSelection = {
+        ejigbo: existingData.powers.includes('ejigbo'),
+        isolo: existingData.powers.includes('isolo'),
+        gen1: existingData.powers.includes('gen1'),
+        gen2: existingData.powers.includes('gen2'),
+        gen3: existingData.powers.includes('gen3'),
+        gen4: existingData.powers.includes('gen4'),
+        gen5: existingData.powers.includes('gen5'),
+        gen6: existingData.powers.includes('gen6'),
+        gen7: existingData.powers.includes('gen7'),
+        gen8: existingData.powers.includes('gen8'),
+        gen9: existingData.powers.includes('gen9'),
+        gen10: existingData.powers.includes('gen10'),
+        gen11: existingData.powers.includes('gen11'),
+        gen12: existingData.powers.includes('gen12'),
+      }
+      setPowerSelection(newPowerSelection)
+    }
+  }, [existingData, open])
 
   // Calculate duration whenever start time or end time changes
   useEffect(() => {
@@ -127,19 +178,19 @@ export function AddUptimeDialog({ open, onOpenChange }: AddUptimeDialogProps) {
     // Validation: Check if at least one power supply is selected
     const hasSelection = Object.values(powerSelection).some(value => value)
     if (!hasSelection) {
-      alert("Please select at least one Power supply before saving.")
+      toast.error("Please select at least one Power supply before saving.")
       return
     }
 
     // Validation: Check if date is provided
     if (!date) {
-      alert("Please select a date before saving.")
+      toast.error("Please select a date before saving.")
       return
     }
 
     // Validation: Check if Start Time is provided
     if (!startTime) {
-      alert("Please enter a Start Time before saving.")
+      toast.error("Please enter a Start Time before saving.")
       return
     }
 
@@ -152,7 +203,7 @@ export function AddUptimeDialog({ open, onOpenChange }: AddUptimeDialogProps) {
       const endMinutes = endHour * 60 + endMinute
 
       if (startMinutes >= endMinutes) {
-        alert("Start Time must be before End Time. Please adjust the times.")
+        toast.error("Start Time must be before End Time. Please adjust the times.")
         return
       }
     }
@@ -160,33 +211,60 @@ export function AddUptimeDialog({ open, onOpenChange }: AddUptimeDialogProps) {
     // Determine status based on End Time
     const status = endTime ? "COMPLETE" : "INCOMPLETE"
 
-    // Create uptime records
+    // Create or update uptime records
     try {
       const selectedPowers = Object.entries(powerSelection)
         .filter(([, selected]) => selected)
         .map(([key]) => key)
 
-      const response = await fetch('/uptime/api/uptime', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          date,
-          startTime,
-          endTime: endTime || null,
-          testRun: testRun === "yes",
-          status,
-          powers: selectedPowers,
-        }),
-      })
+      if (uptimeId) {
+        // Update existing uptime - we need to delete old records and create new ones
+        // because the power selections might have changed
+        const response = await fetch(`/uptime/api/uptime?id=${uptimeId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            date,
+            startTime,
+            endTime: endTime || null,
+            testRun: testRun === "yes",
+            status,
+            powers: selectedPowers,
+          }),
+        })
 
-      if (!response.ok) {
-        throw new Error('Failed to save uptime')
+        if (!response.ok) {
+          throw new Error('Failed to update uptime')
+        }
+
+        toast.success("Uptime saved successfully!")
+      } else {
+        // Create new uptime
+        const response = await fetch('/uptime/api/uptime', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            date,
+            startTime,
+            endTime: endTime || null,
+            testRun: testRun === "yes",
+            status,
+            powers: selectedPowers,
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to save uptime')
+        }
+
+        toast.success("Uptime saved successfully!")
       }
 
       // Success - reset form and close dialog
-      alert("Uptime saved successfully!")
       resetForm()
       onOpenChange(false)
 
@@ -194,7 +272,7 @@ export function AddUptimeDialog({ open, onOpenChange }: AddUptimeDialogProps) {
       window.location.reload()
     } catch (error) {
       console.error('Error saving uptime:', error)
-      alert("Failed to save uptime. Please try again.")
+      toast.error("Failed to save uptime. Please try again.")
     }
   }
 
@@ -203,7 +281,7 @@ export function AddUptimeDialog({ open, onOpenChange }: AddUptimeDialogProps) {
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-gray-900">Uptime</DialogTitle>
+            <DialogTitle className="text-gray-900">Power Uptime</DialogTitle>
             <div className="flex items-center gap-2">
               <Label htmlFor="date" className="text-sm text-gray-900">Date:</Label>
               <Input

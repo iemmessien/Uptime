@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AddUptimeButton } from "@/components/add-uptime-button";
 import { NormalOperationTab } from "@/components/normal-operation-tab";
@@ -14,6 +15,21 @@ import { useViewMode } from "@/lib/view-mode-context";
 export function OverviewContent() {
   const { viewMode } = useViewMode();
   const isFullscreen = viewMode === "ON";
+  const [activeTab, setActiveTab] = useState("overview");
+
+  // Load the active tab from sessionStorage on mount
+  useEffect(() => {
+    const savedTab = sessionStorage.getItem("activeUptimeTab");
+    if (savedTab) {
+      setActiveTab(savedTab);
+    }
+  }, []);
+
+  // Save the active tab to sessionStorage whenever it changes
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    sessionStorage.setItem("activeUptimeTab", value);
+  };
 
   // Fullscreen mode - show only the charts
   if (isFullscreen) {
@@ -38,7 +54,7 @@ export function OverviewContent() {
     <div className="container mx-auto p-8">
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Uptime Overview</h1>
 
-      <Tabs defaultValue="overview" className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <div className="flex items-center justify-between mb-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>

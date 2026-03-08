@@ -1,11 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-   <meta charset="UTF-8">
-   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   <title>Document</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tables & Forms</title>
 </head>
+
 <body>
-   
+  <table>
+    <caption>List of Students</caption>
+    <thead>
+      <tr>
+        <th scope="col">Name</th>
+        <th scope="col">Gender</th>
+        <th scope="col">Phone</th>
+        <th scope="col">Email</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th scope="row">Emmanuel</th>
+        <td>Male</td>
+        <td>0802277904</td>
+        <td>admin@app.com</td>
+      </tr>
+      <tr>
+        <th scope="row">John</th>
+        <td>Male</td>
+        <td>09073800582</td>
+        <td>tech@company.com</td>
+      </tr>
+      <tr>
+        <th scope="row">Michael</th>
+        <td>Male</td>
+        <td>08040285023</td>
+        <td>mike@mikool.com</td>
+      </tr>
+      <tr>
+        <th scope="row">Jonathan</th>
+        <td>Male</td>
+        <td>07094028424</td>
+        <td>jon@freenom.com</td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr>
+        <th scope="row" colspan="4">Total:</th>
+
+        <td>4 Students</td>
+      </tr>
+
+    </tfoot>
+  </table>
+
+  <hr>
+
+  <form>
+    <div>
+      <label>First name:</label>
+      <input>
+    </div>
+      
+    <div>
+      <label>Last name:</label>
+      <input>
+    </div>
+
+    <select>
+      Yes
+    </select>
+
+    <label>name</label>
+    <button>Submit</button>
+  </form>
 </body>
+
 </html>

@@ -8,8 +8,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
 
 const MONTHS = [
   "January",
@@ -39,9 +50,24 @@ interface UptimeRecord {
   testRun: boolean;
 }
 
+interface TimeInterval {
+  startTime: string;
+  endTime: string;
+  duration: number;
+  powerSupplies: UptimeRecord[];
+  totals: {
+    g1_test: number;
+    g2_test: number;
+    g3_test: number;
+    g4_test: number;
+    g5_test: number;
+    g6_test: number;
+  };
+}
+
 interface DayData {
   day: number;
-  uptimes: UptimeRecord[];
+  intervals: TimeInterval[];
   totals: {
     g1_test: number;
     g2_test: number;
@@ -76,6 +102,8 @@ export function TestRunTab() {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [dayDataMap, setDayDataMap] = useState<Map<number, DayData>>(new Map());
   const [loading, setLoading] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [intervalToDelete, setIntervalToDelete] = useState<TimeInterval | null>(null);
   const tableRef = useRef<HTMLTableElement>(null);
   const topScrollRef = useRef<HTMLDivElement>(null);
 
@@ -127,7 +155,11 @@ export function TestRunTab() {
       const data = await response.json();
       const uptimes: UptimeRecord[] = data.uptimes || [];
 
+      // Group uptimes by day and time interval
       const dayMap = new Map<number, DayData>();
+
+      // First, group uptimes by day and time interval (startTime-endTime combination)
+      const timeIntervalMap = new Map<string, UptimeRecord[]>();
 
       uptimes.forEach((uptime) => {
         // Only include COMPLETE test run uptimes
@@ -137,11 +169,24 @@ export function TestRunTab() {
 
         const uptimeDate = new Date(uptime.date);
         const day = uptimeDate.getDate();
+        
+        // Create a unique key for each time interval within a day
+        const timeKey = `${day}-${uptime.startTime}-${uptime.endTime}`;
+        
+        if (!timeIntervalMap.has(timeKey)) {
+          timeIntervalMap.set(timeKey, []);
+        }
+        timeIntervalMap.get(timeKey)!.push(uptime);
+      });
+
+      // Now process each time interval group
+      timeIntervalMap.forEach((intervalUptimes, timeKey) => {
+        const day = parseInt(timeKey.split('-')[0]);
 
         if (!dayMap.has(day)) {
           dayMap.set(day, {
             day,
-            uptimes: [],
+            intervals: [],
             totals: {
               g1_test: 0,
               g2_test: 0,
@@ -153,33 +198,67 @@ export function TestRunTab() {
           });
         }
 
-        dayMap.get(day)!.uptimes.push(uptime);
-      });
+        // Get the first uptime to extract start/end times and duration
+        const firstUptime = intervalUptimes[0];
+        
+        // Calculate totals for this time interval across all power supplies
+        let intervalTotals = {
+          g1_test: 0,
+          g2_test: 0,
+          g3_test: 0,
+          g4_test: 0,
+          g5_test: 0,
+          g6_test: 0,
+        };
 
-      // Calculate totals for each day
-      dayMap.forEach((dayData) => {
-        dayData.uptimes.forEach((uptime) => {
+        intervalUptimes.forEach((uptime) => {
           switch (uptime.powerSupply) {
             case "Generator 1":
-              dayData.totals.g1_test += uptime.duration;
+              intervalTotals.g1_test += uptime.duration;
               break;
             case "Generator 2":
-              dayData.totals.g2_test += uptime.duration;
+              intervalTotals.g2_test += uptime.duration;
               break;
             case "Generator 3":
-              dayData.totals.g3_test += uptime.duration;
+              intervalTotals.g3_test += uptime.duration;
               break;
             case "Generator 4":
-              dayData.totals.g4_test += uptime.duration;
+              intervalTotals.g4_test += uptime.duration;
               break;
             case "Generator 5":
-              dayData.totals.g5_test += uptime.duration;
+              intervalTotals.g5_test += uptime.duration;
               break;
             case "Generator 6":
-              dayData.totals.g6_test += uptime.duration;
+              intervalTotals.g6_test += uptime.duration;
               break;
           }
         });
+
+        // Create a time interval object
+        const timeInterval: TimeInterval = {
+          startTime: firstUptime.startTime,
+          endTime: firstUptime.endTime!,
+          duration: firstUptime.duration,
+          powerSupplies: intervalUptimes,
+          totals: intervalTotals,
+        };
+
+        // Add this interval to the day's intervals
+        dayMap.get(day)!.intervals.push(timeInterval);
+        
+        // Add interval totals to day totals
+        const dayData = dayMap.get(day)!;
+        dayData.totals.g1_test += intervalTotals.g1_test;
+        dayData.totals.g2_test += intervalTotals.g2_test;
+        dayData.totals.g3_test += intervalTotals.g3_test;
+        dayData.totals.g4_test += intervalTotals.g4_test;
+        dayData.totals.g5_test += intervalTotals.g5_test;
+        dayData.totals.g6_test += intervalTotals.g6_test;
+      });
+      
+      // Sort intervals by start time in ascending order
+      dayMap.forEach((dayData) => {
+        dayData.intervals.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
       });
       
       setDayDataMap(dayMap);
@@ -193,7 +272,7 @@ export function TestRunTab() {
   const toggleRow = (day: number) => {
     const dayData = dayDataMap.get(day);
     
-    if (!dayData || dayData.uptimes.length === 0) {
+    if (!dayData || dayData.intervals.length === 0) {
       return;
     }
 
@@ -206,6 +285,38 @@ export function TestRunTab() {
       }
       return newSet;
     });
+  };
+
+  const handleRowDoubleClick = (interval: TimeInterval) => {
+    setIntervalToDelete(interval);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!intervalToDelete || intervalToDelete.powerSupplies.length === 0) return;
+
+    try {
+      // Get the first uptime ID from the interval to delete the entire time interval
+      const firstUptimeId = intervalToDelete.powerSupplies[0].id;
+      
+      const response = await fetch(`/uptime/api/uptime?id=${firstUptimeId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete uptime');
+      }
+
+      toast.success("Uptime deleted successfully!");
+      setDeleteDialogOpen(false);
+      setIntervalToDelete(null);
+      
+      // Refresh the data
+      fetchUptimeData();
+    } catch (error) {
+      console.error('Error deleting uptime:', error);
+      toast.error("Failed to delete uptime. Please try again.");
+    }
   };
 
   const handlePreviousMonth = () => {
@@ -227,67 +338,42 @@ export function TestRunTab() {
   };
 
   const renderChildRows = (dayData: DayData) => {
-    return dayData.uptimes.map((uptime, index) => {
-      const rowTotals = {
-        g1_test: 0,
-        g2_test: 0,
-        g3_test: 0,
-        g4_test: 0,
-        g5_test: 0,
-        g6_test: 0,
-      };
-
-      switch (uptime.powerSupply) {
-        case "Generator 1":
-          rowTotals.g1_test = uptime.duration;
-          break;
-        case "Generator 2":
-          rowTotals.g2_test = uptime.duration;
-          break;
-        case "Generator 3":
-          rowTotals.g3_test = uptime.duration;
-          break;
-        case "Generator 4":
-          rowTotals.g4_test = uptime.duration;
-          break;
-        case "Generator 5":
-          rowTotals.g5_test = uptime.duration;
-          break;
-        case "Generator 6":
-          rowTotals.g6_test = uptime.duration;
-          break;
-      }
-
-      const startTime = formatTime(uptime.startTime);
-      const endTime = uptime.endTime ? formatTime(uptime.endTime) : "Ongoing";
+    return dayData.intervals.map((interval, index) => {
+      const startTime = formatTime(interval.startTime);
+      const endTime = formatTime(interval.endTime);
       const startEndTime = `${startTime} - ${endTime}`;
 
       return (
-        <tr key={`${dayData.day}-${index}`} className="bg-gray-100 hover:bg-orange-50">
+        <tr 
+          key={`${dayData.day}-${index}`} 
+          className="bg-gray-100 hover:bg-orange-50 cursor-pointer"
+          onDoubleClick={() => handleRowDoubleClick(interval)}
+          title="Double-click to delete this uptime"
+        >
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center"></td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
             {startEndTime}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {formatDuration(uptime.duration)}
+            {formatDuration(interval.duration)}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.g1_test > 0 ? formatDuration(rowTotals.g1_test) : ""}
+            {interval.totals.g1_test > 0 ? formatDuration(interval.totals.g1_test) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.g2_test > 0 ? formatDuration(rowTotals.g2_test) : ""}
+            {interval.totals.g2_test > 0 ? formatDuration(interval.totals.g2_test) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.g3_test > 0 ? formatDuration(rowTotals.g3_test) : ""}
+            {interval.totals.g3_test > 0 ? formatDuration(interval.totals.g3_test) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.g4_test > 0 ? formatDuration(rowTotals.g4_test) : ""}
+            {interval.totals.g4_test > 0 ? formatDuration(interval.totals.g4_test) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.g5_test > 0 ? formatDuration(rowTotals.g5_test) : ""}
+            {interval.totals.g5_test > 0 ? formatDuration(interval.totals.g5_test) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.g6_test > 0 ? formatDuration(rowTotals.g6_test) : ""}
+            {interval.totals.g6_test > 0 ? formatDuration(interval.totals.g6_test) : ""}
           </td>
         </tr>
       );
@@ -428,14 +514,14 @@ export function TestRunTab() {
                 {Array.from({ length: daysInMonth }, (_, i) => i + 1).flatMap((day) => {
                   const dayData = dayDataMap.get(day);
                   const isExpanded = expandedRows.has(day);
-                  const hasUptimes = dayData && dayData.uptimes.length > 0;
+                  const hasIntervals = dayData && dayData.intervals.length > 0;
 
                   let startEndRange = "";
-                  if (dayData && dayData.uptimes.length > 0) {
-                    const firstUptime = dayData.uptimes[0];
-                    const lastUptime = dayData.uptimes[dayData.uptimes.length - 1];
-                    const startTime = formatTime(firstUptime.startTime);
-                    const endTime = formatTime(lastUptime.endTime!);
+                  if (dayData && dayData.intervals.length > 0) {
+                    const firstInterval = dayData.intervals[0];
+                    const lastInterval = dayData.intervals[dayData.intervals.length - 1];
+                    const startTime = formatTime(firstInterval.startTime);
+                    const endTime = formatTime(lastInterval.endTime);
                     startEndRange = `${startTime} - ${endTime}`;
                   }
 
@@ -443,7 +529,7 @@ export function TestRunTab() {
                     <tr
                       key={day}
                       onClick={() => toggleRow(day)}
-                      className={`${hasUptimes ? "cursor-pointer hover:bg-orange-50" : ""}`}
+                      className={`${hasIntervals ? "cursor-pointer hover:bg-orange-50" : ""}`}
                     >
                       <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                         {day}
@@ -452,7 +538,7 @@ export function TestRunTab() {
                         {startEndRange}
                       </td>
                       <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-                        {dayData ? dayData.uptimes.length : ""}
+                        {dayData ? dayData.intervals.length : ""}
                       </td>
                       <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                         {dayData && dayData.totals.g1_test > 0
@@ -498,6 +584,28 @@ export function TestRunTab() {
           </div>
         </>
       )}
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete Uptime {intervalToDelete && `${formatTime(intervalToDelete.startTime)} - ${formatTime(intervalToDelete.endTime)}`}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this uptime record? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

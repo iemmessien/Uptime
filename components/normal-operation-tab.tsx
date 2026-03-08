@@ -8,8 +8,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
 
 const MONTHS = [
   "January",
@@ -39,9 +50,29 @@ interface UptimeRecord {
   testRun: boolean;
 }
 
+interface TimeInterval {
+  startTime: string;
+  endTime: string;
+  duration: number;
+  powerSupplies: UptimeRecord[]; // All power supplies for this time interval
+  totals: {
+    ejigbo_av: number;
+    isolo_av: number;
+    g1_av: number;
+    g2_av: number;
+    g3_av: number;
+    g4_av: number;
+    g5_av: number;
+    g6_av: number;
+    ejigbo_uz: number;
+    isolo_uz: number;
+    generators_uz: number;
+  };
+}
+
 interface DayData {
   day: number;
-  uptimes: UptimeRecord[];
+  intervals: TimeInterval[]; // Changed from 'uptimes' to 'intervals'
   totals: {
     ejigbo_av: number;
     isolo_av: number;
@@ -81,6 +112,8 @@ export function NormalOperationTab() {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [dayDataMap, setDayDataMap] = useState<Map<number, DayData>>(new Map());
   const [loading, setLoading] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [intervalToDelete, setIntervalToDelete] = useState<TimeInterval | null>(null);
   const tableRef = useRef<HTMLTableElement>(null);
   const topScrollRef = useRef<HTMLDivElement>(null);
 
@@ -136,8 +169,11 @@ export function NormalOperationTab() {
       const data = await response.json();
       const uptimes: UptimeRecord[] = data.uptimes || [];
 
-      // Group uptimes by day
+      // Group uptimes by day and time interval
       const dayMap = new Map<number, DayData>();
+
+      // First, group uptimes by day and time interval (startTime-endTime combination)
+      const timeIntervalMap = new Map<string, UptimeRecord[]>();
 
       uptimes.forEach((uptime) => {
         // Only include COMPLETE uptimes (those with both startTime and endTime)
@@ -147,11 +183,24 @@ export function NormalOperationTab() {
 
         const uptimeDate = new Date(uptime.date);
         const day = uptimeDate.getDate();
+        
+        // Create a unique key for each time interval within a day
+        const timeKey = `${day}-${uptime.startTime}-${uptime.endTime}`;
+        
+        if (!timeIntervalMap.has(timeKey)) {
+          timeIntervalMap.set(timeKey, []);
+        }
+        timeIntervalMap.get(timeKey)!.push(uptime);
+      });
+
+      // Now process each time interval group
+      timeIntervalMap.forEach((intervalUptimes, timeKey) => {
+        const day = parseInt(timeKey.split('-')[0]);
 
         if (!dayMap.has(day)) {
           dayMap.set(day, {
             day,
-            uptimes: [],
+            intervals: [],
             totals: {
               ejigbo_av: 0,
               isolo_av: 0,
@@ -168,48 +217,94 @@ export function NormalOperationTab() {
           });
         }
 
-        dayMap.get(day)!.uptimes.push(uptime);
-      });
+        // Get the first uptime to extract start/end times and duration
+        const firstUptime = intervalUptimes[0];
+        
+        // Calculate totals for this time interval across all power supplies
+        let intervalTotals = {
+          ejigbo_av: 0,
+          isolo_av: 0,
+          g1_av: 0,
+          g2_av: 0,
+          g3_av: 0,
+          g4_av: 0,
+          g5_av: 0,
+          g6_av: 0,
+          ejigbo_uz: 0,
+          isolo_uz: 0,
+          generators_uz: 0,
+        };
 
-      // Calculate totals for each day
-      dayMap.forEach((dayData) => {
-        dayData.uptimes.forEach((uptime) => {
-
-          // Availability (av) is the runtime/duration
+        intervalUptimes.forEach((uptime) => {
           switch (uptime.powerSupply) {
             case "Ejigbo":
-              dayData.totals.ejigbo_av += uptime.duration;
-              dayData.totals.ejigbo_uz += uptime.utilization;
+              intervalTotals.ejigbo_av += uptime.duration;
+              intervalTotals.ejigbo_uz += uptime.utilization;
               break;
             case "Isolo":
-              dayData.totals.isolo_av += uptime.duration;
-              dayData.totals.isolo_uz += uptime.utilization;
+              intervalTotals.isolo_av += uptime.duration;
+              intervalTotals.isolo_uz += uptime.utilization;
               break;
             case "Generator 1":
-              dayData.totals.g1_av += uptime.duration;
-              dayData.totals.generators_uz += uptime.utilization;
+              intervalTotals.g1_av += uptime.duration;
+              intervalTotals.generators_uz += uptime.utilization;
               break;
             case "Generator 2":
-              dayData.totals.g2_av += uptime.duration;
-              dayData.totals.generators_uz += uptime.utilization;
+              intervalTotals.g2_av += uptime.duration;
+              intervalTotals.generators_uz += uptime.utilization;
               break;
             case "Generator 3":
-              dayData.totals.g3_av += uptime.duration;
-              dayData.totals.generators_uz += uptime.utilization;
+              intervalTotals.g3_av += uptime.duration;
+              intervalTotals.generators_uz += uptime.utilization;
               break;
             case "Generator 4":
-              dayData.totals.g4_av += uptime.duration;
-              dayData.totals.generators_uz += uptime.utilization;
+              intervalTotals.g4_av += uptime.duration;
+              intervalTotals.generators_uz += uptime.utilization;
               break;
             case "Generator 5":
-              dayData.totals.g5_av += uptime.duration;
-              dayData.totals.generators_uz += uptime.utilization;
+              intervalTotals.g5_av += uptime.duration;
+              intervalTotals.generators_uz += uptime.utilization;
               break;
             case "Generator 6":
-              dayData.totals.g6_av += uptime.duration;
-              dayData.totals.generators_uz += uptime.utilization;
+              intervalTotals.g6_av += uptime.duration;
+              intervalTotals.generators_uz += uptime.utilization;
               break;
           }
+        });
+
+        // Create a time interval object
+        const timeInterval: TimeInterval = {
+          startTime: firstUptime.startTime,
+          endTime: firstUptime.endTime!,
+          duration: firstUptime.duration,
+          powerSupplies: intervalUptimes,
+          totals: intervalTotals,
+        };
+
+        // Add this interval to the day's intervals
+        dayMap.get(day)!.intervals.push(timeInterval);
+        
+        // Add interval totals to day totals
+        const dayData = dayMap.get(day)!;
+        dayData.totals.ejigbo_av += intervalTotals.ejigbo_av;
+        dayData.totals.isolo_av += intervalTotals.isolo_av;
+        dayData.totals.g1_av += intervalTotals.g1_av;
+        dayData.totals.g2_av += intervalTotals.g2_av;
+        dayData.totals.g3_av += intervalTotals.g3_av;
+        dayData.totals.g4_av += intervalTotals.g4_av;
+        dayData.totals.g5_av += intervalTotals.g5_av;
+        dayData.totals.g6_av += intervalTotals.g6_av;
+        dayData.totals.ejigbo_uz += intervalTotals.ejigbo_uz;
+        dayData.totals.isolo_uz += intervalTotals.isolo_uz;
+        dayData.totals.generators_uz += intervalTotals.generators_uz;
+      });
+
+      // Sort intervals by start time (ascending order)
+      dayMap.forEach((dayData) => {
+        dayData.intervals.sort((a, b) => {
+          const timeA = new Date(a.startTime).getTime();
+          const timeB = new Date(b.startTime).getTime();
+          return timeA - timeB;
         });
       });
       
@@ -224,8 +319,8 @@ export function NormalOperationTab() {
   const toggleRow = (day: number) => {
     const dayData = dayDataMap.get(day);
     
-    if (!dayData || dayData.uptimes.length === 0) {
-      return; // Don't expand if no uptimes
+    if (!dayData || dayData.intervals.length === 0) {
+      return; // Don't expand if no intervals
     }
 
     setExpandedRows((prev) => {
@@ -237,6 +332,38 @@ export function NormalOperationTab() {
       }
       return newSet;
     });
+  };
+
+  const handleRowDoubleClick = (interval: TimeInterval) => {
+    setIntervalToDelete(interval);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!intervalToDelete || intervalToDelete.powerSupplies.length === 0) return;
+
+    try {
+      // Get the first uptime ID from the interval to delete the entire time interval
+      const firstUptimeId = intervalToDelete.powerSupplies[0].id;
+      
+      const response = await fetch(`/uptime/api/uptime?id=${firstUptimeId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete uptime');
+      }
+
+      toast.success("Uptime deleted successfully!");
+      setDeleteDialogOpen(false);
+      setIntervalToDelete(null);
+      
+      // Refresh the data
+      fetchUptimeData();
+    } catch (error) {
+      console.error('Error deleting uptime:', error);
+      toast.error("Failed to delete uptime. Please try again.");
+    }
   };
 
   const handlePreviousMonth = () => {
@@ -258,103 +385,58 @@ export function NormalOperationTab() {
   };
 
   const renderChildRows = (dayData: DayData) => {
-    return dayData.uptimes.map((uptime, index) => {
-      // Calculate totals for this uptime row
-      const rowTotals = {
-        ejigbo_av: 0,
-        isolo_av: 0,
-        g1_av: 0,
-        g2_av: 0,
-        g3_av: 0,
-        g4_av: 0,
-        g5_av: 0,
-        g6_av: 0,
-        ejigbo_uz: 0,
-        isolo_uz: 0,
-        generators_uz: 0,
-      };
-
-      switch (uptime.powerSupply) {
-        case "Ejigbo":
-          rowTotals.ejigbo_av = uptime.duration;
-          rowTotals.ejigbo_uz = uptime.utilization;
-          break;
-        case "Isolo":
-          rowTotals.isolo_av = uptime.duration;
-          rowTotals.isolo_uz = uptime.utilization;
-          break;
-        case "Generator 1":
-          rowTotals.g1_av = uptime.duration;
-          rowTotals.generators_uz = uptime.utilization;
-          break;
-        case "Generator 2":
-          rowTotals.g2_av = uptime.duration;
-          rowTotals.generators_uz = uptime.utilization;
-          break;
-        case "Generator 3":
-          rowTotals.g3_av = uptime.duration;
-          rowTotals.generators_uz = uptime.utilization;
-          break;
-        case "Generator 4":
-          rowTotals.g4_av = uptime.duration;
-          rowTotals.generators_uz = uptime.utilization;
-          break;
-        case "Generator 5":
-          rowTotals.g5_av = uptime.duration;
-          rowTotals.generators_uz = uptime.utilization;
-          break;
-        case "Generator 6":
-          rowTotals.g6_av = uptime.duration;
-          rowTotals.generators_uz = uptime.utilization;
-          break;
-      }
-
+    return dayData.intervals.map((interval, index) => {
       // Format Start - End time for child row
-      const startTime = formatTime(uptime.startTime);
-      const endTime = uptime.endTime ? formatTime(uptime.endTime) : "Ongoing";
+      const startTime = formatTime(interval.startTime);
+      const endTime = formatTime(interval.endTime);
       const startEndTime = `${startTime} - ${endTime}`;
 
       return (
-        <tr key={`${dayData.day}-${index}`} className="bg-gray-100 hover:bg-orange-50">
+        <tr 
+          key={`${dayData.day}-${index}`} 
+          className="bg-gray-100 hover:bg-orange-50 cursor-pointer"
+          onDoubleClick={() => handleRowDoubleClick(interval)}
+          title="Double-click to delete this uptime"
+        >
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center"></td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
             {startEndTime}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {formatDuration(uptime.duration)}
+            {formatDuration(interval.duration)}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.ejigbo_av > 0 ? formatDuration(rowTotals.ejigbo_av) : ""}
+            {interval.totals.ejigbo_av > 0 ? formatDuration(interval.totals.ejigbo_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.isolo_av > 0 ? formatDuration(rowTotals.isolo_av) : ""}
+            {interval.totals.isolo_av > 0 ? formatDuration(interval.totals.isolo_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.g1_av > 0 ? formatDuration(rowTotals.g1_av) : ""}
+            {interval.totals.g1_av > 0 ? formatDuration(interval.totals.g1_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.g2_av > 0 ? formatDuration(rowTotals.g2_av) : ""}
+            {interval.totals.g2_av > 0 ? formatDuration(interval.totals.g2_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.g3_av > 0 ? formatDuration(rowTotals.g3_av) : ""}
+            {interval.totals.g3_av > 0 ? formatDuration(interval.totals.g3_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.g4_av > 0 ? formatDuration(rowTotals.g4_av) : ""}
+            {interval.totals.g4_av > 0 ? formatDuration(interval.totals.g4_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.g5_av > 0 ? formatDuration(rowTotals.g5_av) : ""}
+            {interval.totals.g5_av > 0 ? formatDuration(interval.totals.g5_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.g6_av > 0 ? formatDuration(rowTotals.g6_av) : ""}
+            {interval.totals.g6_av > 0 ? formatDuration(interval.totals.g6_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.ejigbo_uz > 0 ? formatDuration(rowTotals.ejigbo_uz) : ""}
+            {interval.totals.ejigbo_uz > 0 ? formatDuration(interval.totals.ejigbo_uz) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.isolo_uz > 0 ? formatDuration(rowTotals.isolo_uz) : ""}
+            {interval.totals.isolo_uz > 0 ? formatDuration(interval.totals.isolo_uz) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {rowTotals.generators_uz > 0 ? formatDuration(rowTotals.generators_uz) : ""}
+            {interval.totals.generators_uz > 0 ? formatDuration(interval.totals.generators_uz) : ""}
           </td>
         </tr>
       );
@@ -510,16 +592,15 @@ export function NormalOperationTab() {
               {Array.from({ length: daysInMonth }, (_, i) => i + 1).flatMap((day) => {
                 const dayData = dayDataMap.get(day);
                 const isExpanded = expandedRows.has(day);
-                const hasUptimes = dayData && dayData.uptimes.length > 0;
+                const hasIntervals = dayData && dayData.intervals.length > 0;
 
                 // Calculate Start - End range for parent row
                 let startEndRange = "";
-                if (dayData && dayData.uptimes.length > 0) {
-                  const firstUptime = dayData.uptimes[0];
-                  const lastUptime = dayData.uptimes[dayData.uptimes.length - 1];
-                  const startTime = formatTime(firstUptime.startTime);
-                  // All uptimes are COMPLETE, so endTime will always exist
-                  const endTime = formatTime(lastUptime.endTime!);
+                if (dayData && dayData.intervals.length > 0) {
+                  const firstInterval = dayData.intervals[0];
+                  const lastInterval = dayData.intervals[dayData.intervals.length - 1];
+                  const startTime = formatTime(firstInterval.startTime);
+                  const endTime = formatTime(lastInterval.endTime);
                   startEndRange = `${startTime} - ${endTime}`;
                 }
 
@@ -527,7 +608,7 @@ export function NormalOperationTab() {
                   <tr
                     key={day}
                     onClick={() => toggleRow(day)}
-                    className={`${hasUptimes ? "cursor-pointer hover:bg-orange-50" : ""}`}
+                    className={`${hasIntervals ? "cursor-pointer hover:bg-orange-50" : ""}`}
                   >
                     <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {day}
@@ -536,7 +617,7 @@ export function NormalOperationTab() {
                       {startEndRange}
                     </td>
                     <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-                      {dayData ? dayData.uptimes.length : ""}
+                      {dayData ? dayData.intervals.length : ""}
                     </td>
                     <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.ejigbo_av > 0
@@ -607,6 +688,28 @@ export function NormalOperationTab() {
         </div>
         </>
       )}
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete Uptime {intervalToDelete && `${formatTime(intervalToDelete.startTime)} - ${formatTime(intervalToDelete.endTime)}`}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this uptime record? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

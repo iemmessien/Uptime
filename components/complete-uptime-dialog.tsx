@@ -127,7 +127,7 @@ export function CompleteUptimeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-gray-900">Complete Uptime</DialogTitle>
+          <DialogTitle className="text-gray-900">Complete Power Uptime</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
