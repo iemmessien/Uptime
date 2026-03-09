@@ -99,7 +99,7 @@ function formatTime(timeString: string): string {
   return `${hours}:${minutes}`;
 }
 
-export function PowerAvailabilityTab() {
+export function PowerAvailabilityTab({ refreshKey, onRefresh }: { refreshKey?: number; onRefresh?: () => void }) {
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
@@ -140,7 +140,7 @@ export function PowerAvailabilityTab() {
 
   useEffect(() => {
     fetchUptimeData();
-  }, [selectedMonth, selectedYear]);
+  }, [selectedMonth, selectedYear, refreshKey]);
 
   const fetchUptimeData = async () => {
     setLoading(true);
@@ -368,6 +368,16 @@ export function PowerAvailabilityTab() {
       const endTime = formatTime(interval.endTime);
       const startEndTime = `${startTime} - ${endTime}`;
 
+      // Check which power supplies are present in this interval
+      const hasEjigbo = interval.powerSupplies.some(u => u.powerSupply === 'Ejigbo');
+      const hasIsolo = interval.powerSupplies.some(u => u.powerSupply === 'Isolo');
+      const hasGen1 = interval.powerSupplies.some(u => u.powerSupply === 'Generator 1');
+      const hasGen2 = interval.powerSupplies.some(u => u.powerSupply === 'Generator 2');
+      const hasGen3 = interval.powerSupplies.some(u => u.powerSupply === 'Generator 3');
+      const hasGen4 = interval.powerSupplies.some(u => u.powerSupply === 'Generator 4');
+      const hasGen5 = interval.powerSupplies.some(u => u.powerSupply === 'Generator 5');
+      const hasGen6 = interval.powerSupplies.some(u => u.powerSupply === 'Generator 6');
+
       return (
         <tr 
           key={`${dayData.day}-${index}`} 
@@ -383,28 +393,28 @@ export function PowerAvailabilityTab() {
             {formatDuration(interval.duration)}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.ejigbo_av > 0 ? formatDuration(interval.totals.ejigbo_av) : ""}
+            {hasEjigbo ? formatDuration(interval.totals.ejigbo_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.isolo_av > 0 ? formatDuration(interval.totals.isolo_av) : ""}
+            {hasIsolo ? formatDuration(interval.totals.isolo_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.g1_av > 0 ? formatDuration(interval.totals.g1_av) : ""}
+            {hasGen1 ? formatDuration(interval.totals.g1_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.g2_av > 0 ? formatDuration(interval.totals.g2_av) : ""}
+            {hasGen2 ? formatDuration(interval.totals.g2_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.g3_av > 0 ? formatDuration(interval.totals.g3_av) : ""}
+            {hasGen3 ? formatDuration(interval.totals.g3_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.g4_av > 0 ? formatDuration(interval.totals.g4_av) : ""}
+            {hasGen4 ? formatDuration(interval.totals.g4_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.g5_av > 0 ? formatDuration(interval.totals.g5_av) : ""}
+            {hasGen5 ? formatDuration(interval.totals.g5_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.g6_av > 0 ? formatDuration(interval.totals.g6_av) : ""}
+            {hasGen6 ? formatDuration(interval.totals.g6_av) : ""}
           </td>
         </tr>
       );

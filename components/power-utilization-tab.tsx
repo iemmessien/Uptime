@@ -89,7 +89,7 @@ function formatTime(timeString: string): string {
   return `${hours}:${minutes}`;
 }
 
-export function PowerUtilizationTab() {
+export function PowerUtilizationTab({ refreshKey, onRefresh }: { refreshKey?: number; onRefresh?: () => void }) {
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
@@ -130,7 +130,7 @@ export function PowerUtilizationTab() {
 
   useEffect(() => {
     fetchUptimeData();
-  }, [selectedMonth, selectedYear]);
+  }, [selectedMonth, selectedYear, refreshKey]);
 
   const fetchUptimeData = async () => {
     setLoading(true);
@@ -203,6 +203,14 @@ export function PowerUtilizationTab() {
           generators_uz: 0,
         };
 
+        // Determine which power supplies are in this interval
+        const hasEjigbo = intervalUptimes.some(u => u.powerSupply === 'Ejigbo');
+        const hasIsolo = intervalUptimes.some(u => u.powerSupply === 'Isolo');
+        const generators = intervalUptimes.filter(u => u.powerSupply.startsWith('Generator'));
+        const generatorCount = generators.length;
+        const isTestRun = firstUptime.testRun;
+        const runTime = firstUptime.duration;
+
         intervalUptimes.forEach((uptime) => {
           switch (uptime.powerSupply) {
             case "Ejigbo":
@@ -211,16 +219,15 @@ export function PowerUtilizationTab() {
             case "Isolo":
               intervalTotals.isolo_uz += uptime.utilization;
               break;
-            case "Generator 1":
-            case "Generator 2":
-            case "Generator 3":
-            case "Generator 4":
-            case "Generator 5":
-            case "Generator 6":
-              intervalTotals.generators_uz += uptime.utilization;
-              break;
           }
         });
+
+        // Calculate generators_uz based on rules (matching chart logic)
+        if (!isTestRun && !hasEjigbo && hasIsolo && generatorCount === 2) {
+          // Isolo + 2 generators: Generators get 50% of run time
+          intervalTotals.generators_uz = runTime * 0.5;
+        }
+        // Otherwise generators_uz remains 0
 
         // Create a time interval object
         const timeInterval: TimeInterval = {
@@ -329,6 +336,11 @@ export function PowerUtilizationTab() {
       const endTime = formatTime(interval.endTime);
       const startEndTime = `${startTime} - ${endTime}`;
 
+      // Check which power supplies are present in this interval
+      const hasEjigbo = interval.powerSupplies.some(u => u.powerSupply === 'Ejigbo');
+      const hasIsolo = interval.powerSupplies.some(u => u.powerSupply === 'Isolo');
+      const hasAnyGenerator = interval.powerSupplies.some(u => u.powerSupply.startsWith('Generator'));
+
       return (
         <tr 
           key={`${dayData.day}-${index}`} 
@@ -344,13 +356,13 @@ export function PowerUtilizationTab() {
             {formatDuration(interval.duration)}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.ejigbo_uz > 0 ? formatDuration(interval.totals.ejigbo_uz) : ""}
+            {hasEjigbo ? formatDuration(interval.totals.ejigbo_uz) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.isolo_uz > 0 ? formatDuration(interval.totals.isolo_uz) : ""}
+            {hasIsolo ? formatDuration(interval.totals.isolo_uz) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.generators_uz > 0 ? formatDuration(interval.totals.generators_uz) : ""}
+            {hasAnyGenerator ? formatDuration(interval.totals.generators_uz) : ""}
           </td>
         </tr>
       );

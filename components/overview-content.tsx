@@ -16,6 +16,11 @@ export function OverviewContent() {
   const { viewMode } = useViewMode();
   const isFullscreen = viewMode === "ON";
   const [activeTab, setActiveTab] = useState("overview");
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+  };
 
   // Load the active tab from sessionStorage on mount
   useEffect(() => {
@@ -37,13 +42,13 @@ export function OverviewContent() {
       <div className="container mx-auto p-8">
         <div className="space-y-6">
           {/* Utilization Chart */}
-          <UtilizationChart />
+          <UtilizationChart refreshKey={refreshKey} />
 
           {/* Availability Chart */}
-          <AvailabilityChart />
+          <AvailabilityChart refreshKey={refreshKey} />
 
           {/* Incomplete Uptimes Table */}
-          <IncompleteUptimesTable />
+          <IncompleteUptimesTable refreshKey={refreshKey} onRefresh={handleRefresh} />
         </div>
       </div>
     );
@@ -63,36 +68,36 @@ export function OverviewContent() {
             <TabsTrigger value="power-utilization">Power Utilization</TabsTrigger>
             <TabsTrigger value="test-run">Test Run</TabsTrigger>
           </TabsList>
-          <AddUptimeButton />
+          <AddUptimeButton onSuccess={handleRefresh} />
         </div>
 
         <TabsContent value="overview">
           <div className="space-y-6">
             {/* Utilization Chart */}
-            <UtilizationChart />
+            <UtilizationChart refreshKey={refreshKey} />
 
             {/* Availability Chart */}
-            <AvailabilityChart />
+            <AvailabilityChart refreshKey={refreshKey} />
 
             {/* Incomplete Uptimes Table */}
-            <IncompleteUptimesTable />
+            <IncompleteUptimesTable refreshKey={refreshKey} onRefresh={handleRefresh} />
           </div>
         </TabsContent>
 
         <TabsContent value="normal-operation">
-          <NormalOperationTab />
+          <NormalOperationTab refreshKey={refreshKey} onRefresh={handleRefresh} />
         </TabsContent>
 
         <TabsContent value="power-availability">
-          <PowerAvailabilityTab />
+          <PowerAvailabilityTab refreshKey={refreshKey} onRefresh={handleRefresh} />
         </TabsContent>
 
         <TabsContent value="power-utilization">
-          <PowerUtilizationTab />
+          <PowerUtilizationTab refreshKey={refreshKey} onRefresh={handleRefresh} />
         </TabsContent>
 
         <TabsContent value="test-run">
-          <TestRunTab />
+          <TestRunTab refreshKey={refreshKey} onRefresh={handleRefresh} />
         </TabsContent>
       </Tabs>
     </div>

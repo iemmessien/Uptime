@@ -105,7 +105,7 @@ function formatTime(timeString: string): string {
   return `${hours}:${minutes}`;
 }
 
-export function NormalOperationTab() {
+export function NormalOperationTab({ refreshKey, onRefresh }: { refreshKey?: number; onRefresh?: () => void }) {
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
@@ -146,7 +146,7 @@ export function NormalOperationTab() {
 
   useEffect(() => {
     fetchUptimeData();
-  }, [selectedMonth, selectedYear]);
+  }, [selectedMonth, selectedYear, refreshKey]);
 
   const fetchUptimeData = async () => {
     setLoading(true);
@@ -235,6 +235,14 @@ export function NormalOperationTab() {
           generators_uz: 0,
         };
 
+        // Determine which power supplies are in this interval
+        const hasEjigbo = intervalUptimes.some(u => u.powerSupply === 'Ejigbo');
+        const hasIsolo = intervalUptimes.some(u => u.powerSupply === 'Isolo');
+        const generators = intervalUptimes.filter(u => u.powerSupply.startsWith('Generator'));
+        const generatorCount = generators.length;
+        const isTestRun = firstUptime.testRun;
+        const runTime = firstUptime.duration;
+
         intervalUptimes.forEach((uptime) => {
           switch (uptime.powerSupply) {
             case "Ejigbo":
@@ -247,30 +255,31 @@ export function NormalOperationTab() {
               break;
             case "Generator 1":
               intervalTotals.g1_av += uptime.duration;
-              intervalTotals.generators_uz += uptime.utilization;
               break;
             case "Generator 2":
               intervalTotals.g2_av += uptime.duration;
-              intervalTotals.generators_uz += uptime.utilization;
               break;
             case "Generator 3":
               intervalTotals.g3_av += uptime.duration;
-              intervalTotals.generators_uz += uptime.utilization;
               break;
             case "Generator 4":
               intervalTotals.g4_av += uptime.duration;
-              intervalTotals.generators_uz += uptime.utilization;
               break;
             case "Generator 5":
               intervalTotals.g5_av += uptime.duration;
-              intervalTotals.generators_uz += uptime.utilization;
               break;
             case "Generator 6":
               intervalTotals.g6_av += uptime.duration;
-              intervalTotals.generators_uz += uptime.utilization;
               break;
           }
         });
+
+        // Calculate generators_uz based on rules (matching chart logic)
+        if (!isTestRun && !hasEjigbo && hasIsolo && generatorCount === 2) {
+          // Isolo + 2 generators: Generators get 50% of run time
+          intervalTotals.generators_uz = runTime * 0.5;
+        }
+        // Otherwise generators_uz remains 0
 
         // Create a time interval object
         const timeInterval: TimeInterval = {
@@ -391,6 +400,17 @@ export function NormalOperationTab() {
       const endTime = formatTime(interval.endTime);
       const startEndTime = `${startTime} - ${endTime}`;
 
+      // Check which power supplies are present in this interval
+      const hasEjigbo = interval.powerSupplies.some(u => u.powerSupply === 'Ejigbo');
+      const hasIsolo = interval.powerSupplies.some(u => u.powerSupply === 'Isolo');
+      const hasGen1 = interval.powerSupplies.some(u => u.powerSupply === 'Generator 1');
+      const hasGen2 = interval.powerSupplies.some(u => u.powerSupply === 'Generator 2');
+      const hasGen3 = interval.powerSupplies.some(u => u.powerSupply === 'Generator 3');
+      const hasGen4 = interval.powerSupplies.some(u => u.powerSupply === 'Generator 4');
+      const hasGen5 = interval.powerSupplies.some(u => u.powerSupply === 'Generator 5');
+      const hasGen6 = interval.powerSupplies.some(u => u.powerSupply === 'Generator 6');
+      const hasAnyGenerator = interval.powerSupplies.some(u => u.powerSupply.startsWith('Generator'));
+
       return (
         <tr 
           key={`${dayData.day}-${index}`} 
@@ -406,37 +426,37 @@ export function NormalOperationTab() {
             {formatDuration(interval.duration)}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.ejigbo_av > 0 ? formatDuration(interval.totals.ejigbo_av) : ""}
+            {hasEjigbo ? formatDuration(interval.totals.ejigbo_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.isolo_av > 0 ? formatDuration(interval.totals.isolo_av) : ""}
+            {hasIsolo ? formatDuration(interval.totals.isolo_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.g1_av > 0 ? formatDuration(interval.totals.g1_av) : ""}
+            {hasGen1 ? formatDuration(interval.totals.g1_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.g2_av > 0 ? formatDuration(interval.totals.g2_av) : ""}
+            {hasGen2 ? formatDuration(interval.totals.g2_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.g3_av > 0 ? formatDuration(interval.totals.g3_av) : ""}
+            {hasGen3 ? formatDuration(interval.totals.g3_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.g4_av > 0 ? formatDuration(interval.totals.g4_av) : ""}
+            {hasGen4 ? formatDuration(interval.totals.g4_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.g5_av > 0 ? formatDuration(interval.totals.g5_av) : ""}
+            {hasGen5 ? formatDuration(interval.totals.g5_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.g6_av > 0 ? formatDuration(interval.totals.g6_av) : ""}
+            {hasGen6 ? formatDuration(interval.totals.g6_av) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.ejigbo_uz > 0 ? formatDuration(interval.totals.ejigbo_uz) : ""}
+            {hasEjigbo ? formatDuration(interval.totals.ejigbo_uz) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.isolo_uz > 0 ? formatDuration(interval.totals.isolo_uz) : ""}
+            {hasIsolo ? formatDuration(interval.totals.isolo_uz) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.generators_uz > 0 ? formatDuration(interval.totals.generators_uz) : ""}
+            {hasAnyGenerator ? formatDuration(interval.totals.generators_uz) : ""}
           </td>
         </tr>
       );

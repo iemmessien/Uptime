@@ -3,7 +3,11 @@
 import { useState } from "react"
 import { AddUptimeDialog } from "./add-uptime-dialog"
 
-export function AddUptimeButton() {
+interface AddUptimeButtonProps {
+  onSuccess?: () => void
+}
+
+export function AddUptimeButton({ onSuccess }: AddUptimeButtonProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
 
   return (
@@ -14,7 +18,11 @@ export function AddUptimeButton() {
       >
         Add Uptime
       </button>
-      <AddUptimeDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <AddUptimeDialog 
+        open={dialogOpen} 
+        onOpenChange={setDialogOpen}
+        onSuccess={onSuccess}
+      />
     </>
   )
 }

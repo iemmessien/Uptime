@@ -135,19 +135,36 @@ export async function PUT(request: NextRequest) {
     const isEjigboSelected = powers.includes('ejigbo')
     const isIsoloSelected = powers.includes('isolo')
     const isTestRun = testRun === true
+    
+    // Count selected generators
+    const generatorKeys = ['gen1', 'gen2', 'gen3', 'gen4', 'gen5', 'gen6', 'gen7', 'gen8', 'gen9', 'gen10', 'gen11', 'gen12']
+    const selectedGenerators = powers.filter((p: string) => generatorKeys.includes(p))
+    const generatorCount = selectedGenerators.length
 
     const calculateUtilization = (power: string): number => {
       if (!endDateTime) return 0
       if (isTestRun) return 0
+      
       if (isEjigboSelected) {
         if (power === 'ejigbo') return runTime
         return 0
       }
+      
       if (!isEjigboSelected && isIsoloSelected) {
-        if (power === 'isolo') return runTime * 0.5
-        if (['gen1', 'gen2', 'gen3', 'gen4', 'gen5', 'gen6'].includes(power)) return 0
+        if (generatorCount === 2) {
+          if (power === 'isolo') return runTime * 0.5
+          if (generatorKeys.includes(power)) return 0
+          return 0
+        }
+        
+        if (generatorCount === 0) {
+          if (power === 'isolo') return runTime
+          return 0
+        }
+        
         return 0
       }
+      
       return 0
     }
 
@@ -174,9 +191,9 @@ export async function PUT(request: NextRequest) {
     const uptimePromises = powers.map(async (power: string) => {
       const utilization = calculateUtilization(power)
 
-      const uptimeData = {
+      const uptimeData: any = {
         startTime: startDateTime,
-        endTime: endDateTime || startDateTime,
+        endTime: endDateTime || null,
         runTime,
         utilization,
         testRun,
@@ -262,6 +279,14 @@ export async function PUT(request: NextRequest) {
     const results = await Promise.all(uptimePromises)
     const successfulRecords = results.filter(r => r !== null)
 
+    if (successfulRecords.length === 0) {
+      console.error('No records were updated successfully')
+      return NextResponse.json(
+        { success: false, error: 'No uptime records were updated. Please check power supply selections.' },
+        { status: 400 }
+      )
+    }
+
     return NextResponse.json({
       success: true,
       message: `Updated uptime - created ${successfulRecords.length} record(s)`,
@@ -269,8 +294,9 @@ export async function PUT(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error updating uptime:', error)
+    console.error('Error details:', error instanceof Error ? error.message : String(error))
     return NextResponse.json(
-      { success: false, error: 'Failed to update uptime record' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to update uptime record' },
       { status: 500 }
     )
   } finally {
@@ -351,6 +377,11 @@ export async function POST(request: NextRequest) {
     const isEjigboSelected = powers.includes('ejigbo')
     const isIsoloSelected = powers.includes('isolo')
     const isTestRun = testRun === true
+    
+    // Count selected generators
+    const generatorKeys = ['gen1', 'gen2', 'gen3', 'gen4', 'gen5', 'gen6', 'gen7', 'gen8', 'gen9', 'gen10', 'gen11', 'gen12']
+    const selectedGenerators = powers.filter((p: string) => generatorKeys.includes(p))
+    const generatorCount = selectedGenerators.length
 
     // Helper function to calculate utilization based on rules
     const calculateUtilization = (power: string): number => {
@@ -376,17 +407,30 @@ export async function POST(request: NextRequest) {
 
       // Rule 3: If Ejigbo is NOT selected but Isolo is selected
       if (!isEjigboSelected && isIsoloSelected) {
-        // Isolo gets 50% of its availability
-        if (power === 'isolo') {
-          return runTime * 0.5
-        }
-        // Generators 1-6 combined would get 50%, but since we're creating individual records,
-        // we set individual generator utilization to 0 here
-        // The combined generators utilization will be calculated in the frontend/queries
-        if (['gen1', 'gen2', 'gen3', 'gen4', 'gen5', 'gen6'].includes(power)) {
+        // Rule 3a: If Isolo is selected with exactly 2 generators
+        if (generatorCount === 2) {
+          // Isolo gets 50% of the run time
+          if (power === 'isolo') {
+            return runTime * 0.5
+          }
+          // Individual generators get 0 (combined will be calculated as 50% in UI)
+          if (generatorKeys.includes(power)) {
+            return 0
+          }
           return 0
         }
-        // Other generators (7-12) get 0
+        
+        // Rule 3b: If Isolo is selected with NO generators
+        if (generatorCount === 0) {
+          // Isolo gets 100% of the run time
+          if (power === 'isolo') {
+            return runTime
+          }
+          // All others get 0
+          return 0
+        }
+        
+        // For other cases (1 generator or more than 2), set to 0 for now
         return 0
       }
 
@@ -399,9 +443,9 @@ export async function POST(request: NextRequest) {
     const uptimePromises = powers.map(async (power: string) => {
       const utilization = calculateUtilization(power)
 
-      const uptimeData = {
+      const uptimeData: any = {
         startTime: startDateTime,
-        endTime: endDateTime || startDateTime,
+        endTime: endDateTime || null,
         runTime,
         utilization,
         testRun,
@@ -490,6 +534,14 @@ export async function POST(request: NextRequest) {
     const results = await Promise.all(uptimePromises)
     const successfulRecords = results.filter(r => r !== null)
 
+    if (successfulRecords.length === 0) {
+      console.error('No records were created successfully')
+      return NextResponse.json(
+        { success: false, error: 'No uptime records were created. Please check power supply selections.' },
+        { status: 400 }
+      )
+    }
+
     return NextResponse.json({
       success: true,
       message: `Created ${successfulRecords.length} uptime record(s)`,
@@ -497,8 +549,9 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error creating uptime:', error)
+    console.error('Error details:', error instanceof Error ? error.message : String(error))
     return NextResponse.json(
-      { success: false, error: 'Failed to create uptime record' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to create uptime record' },
       { status: 500 }
     )
   } finally {

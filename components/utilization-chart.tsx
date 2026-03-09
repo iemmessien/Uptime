@@ -36,12 +36,12 @@ function getDaysInMonth(month: number, year: number): number {
   return new Date(year, month + 1, 0).getDate();
 }
 
-export function UtilizationChart() {
+export function UtilizationChart({ refreshKey }: { refreshKey?: number }) {
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [mounted, setMounted] = useState(false);
-  const [chartData, setChartData] = useState({ ejigboData: [], isoloData: [], generatorsData: [] });
+  const [chartData, setChartData] = useState<{ ejigboData: number[], isoloData: number[], generatorsData: number[] }>({ ejigboData: [], isoloData: [], generatorsData: [] });
   const [loading, setLoading] = useState(true);
 
   const daysInMonth = getDaysInMonth(selectedMonth, selectedYear);
@@ -53,7 +53,7 @@ export function UtilizationChart() {
 
   useEffect(() => {
     fetchUtilizationData();
-  }, [selectedMonth, selectedYear]);
+  }, [selectedMonth, selectedYear, refreshKey]);
 
   const fetchUtilizationData = async () => {
     setLoading(true);
@@ -77,22 +77,50 @@ export function UtilizationChart() {
         const isoloData = Array(daysInMonth).fill(0);
         const generatorsData = Array(daysInMonth).fill(0);
 
-        // Process uptimes and aggregate utilization by day
+        // Group uptimes by event (date + startTime + testRun)
+        const eventMap = new Map<string, any[]>();
         data.uptimes.forEach((uptime: any) => {
-          const uptimeDate = new Date(uptime.date);
+          const eventKey = `${uptime.date}-${uptime.startTime}-${uptime.testRun}`;
+          if (!eventMap.has(eventKey)) {
+            eventMap.set(eventKey, []);
+          }
+          eventMap.get(eventKey)!.push(uptime);
+        });
+
+        // Process each event
+        eventMap.forEach((uptimes) => {
+          const firstUptime = uptimes[0];
+          const uptimeDate = new Date(firstUptime.date);
           const day = uptimeDate.getDate() - 1; // 0-indexed
 
           if (day >= 0 && day < daysInMonth) {
-            const utilizationHours = uptime.utilization / 60; // Convert minutes to hours
+            const runTimeMinutes = firstUptime.duration;
+            const runTimeHours = runTimeMinutes / 60; // Convert minutes to hours
 
-            if (uptime.powerSupply === 'Ejigbo') {
-              ejigboData[day] += utilizationHours;
-            } else if (uptime.powerSupply === 'Isolo') {
-              isoloData[day] += utilizationHours;
-            } else if (uptime.powerSupply.startsWith('Generator')) {
-              // Aggregate all generators
-              generatorsData[day] += utilizationHours;
+            // Check which power supplies are in this event
+            const hasEjigbo = uptimes.some(u => u.powerSupply === 'Ejigbo');
+            const hasIsolo = uptimes.some(u => u.powerSupply === 'Isolo');
+            const generators = uptimes.filter(u => u.powerSupply.startsWith('Generator'));
+            const generatorCount = generators.length;
+            const isTestRun = firstUptime.testRun;
+
+            // Calculate utilization based on rules
+            if (isTestRun) {
+              // Test Run: all utilization is 0
+              // Do nothing
+            } else if (hasEjigbo) {
+              // If Ejigbo is on, it gets 100% utilization
+              ejigboData[day] += runTimeHours;
+              // Others get 0
+            } else if (hasIsolo && generatorCount === 2) {
+              // Isolo + 2 generators: Isolo gets 50%, Generators get 50%
+              isoloData[day] += runTimeHours * 0.5;
+              generatorsData[day] += runTimeHours * 0.5;
+            } else if (hasIsolo && generatorCount === 0) {
+              // Isolo alone: Isolo gets 100%
+              isoloData[day] += runTimeHours;
             }
+            // For other cases, utilization remains 0
           }
         });
 

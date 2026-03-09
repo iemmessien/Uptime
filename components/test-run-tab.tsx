@@ -95,7 +95,7 @@ function formatTime(timeString: string): string {
   return `${hours}:${minutes}`;
 }
 
-export function TestRunTab() {
+export function TestRunTab({ refreshKey, onRefresh }: { refreshKey?: number; onRefresh?: () => void }) {
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
@@ -136,7 +136,7 @@ export function TestRunTab() {
 
   useEffect(() => {
     fetchUptimeData();
-  }, [selectedMonth, selectedYear]);
+  }, [selectedMonth, selectedYear, refreshKey]);
 
   const fetchUptimeData = async () => {
     setLoading(true);
@@ -343,6 +343,14 @@ export function TestRunTab() {
       const endTime = formatTime(interval.endTime);
       const startEndTime = `${startTime} - ${endTime}`;
 
+      // Check which generators are present in this interval
+      const hasGen1 = interval.powerSupplies.some(u => u.powerSupply === 'Generator 1');
+      const hasGen2 = interval.powerSupplies.some(u => u.powerSupply === 'Generator 2');
+      const hasGen3 = interval.powerSupplies.some(u => u.powerSupply === 'Generator 3');
+      const hasGen4 = interval.powerSupplies.some(u => u.powerSupply === 'Generator 4');
+      const hasGen5 = interval.powerSupplies.some(u => u.powerSupply === 'Generator 5');
+      const hasGen6 = interval.powerSupplies.some(u => u.powerSupply === 'Generator 6');
+
       return (
         <tr 
           key={`${dayData.day}-${index}`} 
@@ -358,22 +366,22 @@ export function TestRunTab() {
             {formatDuration(interval.duration)}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.g1_test > 0 ? formatDuration(interval.totals.g1_test) : ""}
+            {hasGen1 ? formatDuration(interval.totals.g1_test) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.g2_test > 0 ? formatDuration(interval.totals.g2_test) : ""}
+            {hasGen2 ? formatDuration(interval.totals.g2_test) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.g3_test > 0 ? formatDuration(interval.totals.g3_test) : ""}
+            {hasGen3 ? formatDuration(interval.totals.g3_test) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.g4_test > 0 ? formatDuration(interval.totals.g4_test) : ""}
+            {hasGen4 ? formatDuration(interval.totals.g4_test) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.g5_test > 0 ? formatDuration(interval.totals.g5_test) : ""}
+            {hasGen5 ? formatDuration(interval.totals.g5_test) : ""}
           </td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
-            {interval.totals.g6_test > 0 ? formatDuration(interval.totals.g6_test) : ""}
+            {hasGen6 ? formatDuration(interval.totals.g6_test) : ""}
           </td>
         </tr>
       );

@@ -17,28 +17,75 @@ export function AccountForm({ initialEmail, initialUsername }: AccountFormProps)
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const [isLoadingInfo, setIsLoadingInfo] = useState(false);
+  const [isLoadingPassword, setIsLoadingPassword] = useState(false);
+  const [infoMessage, setInfoMessage] = useState("");
+  const [infoError, setInfoError] = useState("");
+  const [passwordMessage, setPasswordMessage] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleInfoUpdate = async (e: FormEvent) => {
     e.preventDefault();
-    setError("");
-    setMessage("");
-    setIsLoading(true);
+    setInfoError("");
+    setInfoMessage("");
+    setIsLoadingInfo(true);
 
-    // Validate password change if provided
-    if (newPassword) {
-      if (newPassword !== confirmPassword) {
-        setError("New passwords do not match");
-        setIsLoading(false);
-        return;
+    try {
+      const response = await fetch("/uptime/api/account/update", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          username,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setInfoMessage("Account information updated successfully!");
+        
+        // If username changed, reload after a delay
+        if (username !== initialUsername) {
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        }
+      } else {
+        setInfoError(data.error || "Failed to update account information");
       }
-      if (!currentPassword) {
-        setError("Current password is required to change password");
-        setIsLoading(false);
-        return;
-      }
+    } catch {
+      setInfoError("An error occurred while updating your account information");
+    } finally {
+      setIsLoadingInfo(false);
+    }
+  };
+
+  const handlePasswordUpdate = async (e: FormEvent) => {
+    e.preventDefault();
+    setPasswordError("");
+    setPasswordMessage("");
+    setIsLoadingPassword(true);
+
+    // Validate password change
+    if (!currentPassword) {
+      setPasswordError("Current password is required");
+      setIsLoadingPassword(false);
+      return;
+    }
+    
+    if (!newPassword) {
+      setPasswordError("New password is required");
+      setIsLoadingPassword(false);
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New passwords do not match");
+      setIsLoadingPassword(false);
+      return;
     }
 
     try {
@@ -50,32 +97,25 @@ export function AccountForm({ initialEmail, initialUsername }: AccountFormProps)
         body: JSON.stringify({
           email,
           username,
-          currentPassword: currentPassword || undefined,
-          newPassword: newPassword || undefined,
+          currentPassword,
+          newPassword,
         }),
       });
 
       const data = await response.json();
 
       if (response.ok && data.success) {
-        setMessage("Account updated successfully!");
+        setPasswordMessage("Password updated successfully!");
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
-        
-        // If username changed, reload after a delay
-        if (username !== initialUsername) {
-          setTimeout(() => {
-            window.location.reload();
-          }, 1500);
-        }
       } else {
-        setError(data.error || "Failed to update account");
+        setPasswordError(data.error || "Failed to update password");
       }
     } catch {
-      setError("An error occurred while updating your account");
+      setPasswordError("An error occurred while updating your password");
     } finally {
-      setIsLoading(false);
+      setIsLoadingPassword(false);
     }
   };
 
@@ -88,7 +128,8 @@ export function AccountForm({ initialEmail, initialUsername }: AccountFormProps)
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Account Information Form */}
+        <form onSubmit={handleInfoUpdate} className="space-y-6 pb-6">
           {/* Email */}
           <div className="space-y-2">
             <Label htmlFor="email">Email Address</Label>
@@ -113,66 +154,87 @@ export function AccountForm({ initialEmail, initialUsername }: AccountFormProps)
             />
           </div>
 
-          {/* Password Change Section */}
-          <div className="border-t pt-6 space-y-4">
-            <h3 className="text-lg font-medium">Change Password</h3>
-            <p className="text-sm text-gray-900">
-              Leave blank if you don&apos;t want to change your password
-            </p>
-
-            <div className="space-y-2">
-              <Label htmlFor="currentPassword">Current Password</Label>
-              <Input
-                id="currentPassword"
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="Enter current password"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password</Label>
-              <Input
-                id="newPassword"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Enter new password"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm new password"
-              />
-            </div>
-          </div>
-
-          {/* Error/Success Messages */}
-          {error && (
+          {/* Error/Success Messages for Info */}
+          {infoError && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-              {error}
+              {infoError}
             </div>
           )}
-          {message && (
+          {infoMessage && (
             <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
-              {message}
+              {infoMessage}
             </div>
           )}
 
-          {/* Submit Button */}
+          {/* Update Information Button */}
           <Button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoadingInfo}
             className="w-full bg-orange-500 hover:bg-orange-600"
           >
-            {isLoading ? "Updating..." : "Update Account"}
+            {isLoadingInfo ? "Updating..." : "Update Information"}
+          </Button>
+        </form>
+
+        {/* Password Change Form */}
+        <form onSubmit={handlePasswordUpdate} className="border-t pt-6 space-y-4">
+          <h3 className="text-lg font-medium">Change Password</h3>
+          <p className="text-sm text-gray-900">
+            Enter your current password and a new password to change it
+          </p>
+
+          <div className="space-y-2">
+            <Label htmlFor="currentPassword">Current Password</Label>
+            <Input
+              id="currentPassword"
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Enter current password"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="newPassword">New Password</Label>
+            <Input
+              id="newPassword"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Enter new password"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirm New Password</Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm new password"
+            />
+          </div>
+
+          {/* Error/Success Messages for Password */}
+          {passwordError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              {passwordError}
+            </div>
+          )}
+          {passwordMessage && (
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+              {passwordMessage}
+            </div>
+          )}
+
+          {/* Update Password Button */}
+          <Button
+            type="submit"
+            disabled={isLoadingPassword}
+            className="w-full bg-orange-500 hover:bg-orange-600"
+          >
+            {isLoadingPassword ? "Updating..." : "Update Password"}
           </Button>
         </form>
       </CardContent>

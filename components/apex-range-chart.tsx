@@ -323,11 +323,18 @@ export function UptimeRangeChart({ type, selectedDate: initialDate }: UptimeRang
                const end = new Date(data.y[1])
                const duration = data.duration || 0
 
-               const formatDate = (date: Date) => {
+               const formatDateTime = (date: Date) => {
                   return date.toLocaleString('en-US', {
-                     month: 'short',
+                     month: 'long',
                      day: 'numeric',
                      year: 'numeric',
+                     hour: '2-digit',
+                     minute: '2-digit'
+                  })
+               }
+
+               const formatTime = (date: Date) => {
+                  return date.toLocaleString('en-US', {
                      hour: '2-digit',
                      minute: '2-digit'
                   })
@@ -338,8 +345,7 @@ export function UptimeRangeChart({ type, selectedDate: initialDate }: UptimeRang
               <div style="font-weight: 600; margin-bottom: 5px;">${powerSupply}</div>
               <div style="font-size: 12px; color: #6b7280;">
                 <div>Duration: ${formatDuration(duration)}</div>
-                <div>${formatDate(start)}</div>
-                <div>to ${formatDate(end)}</div>
+                <div>${formatDateTime(start)} - ${formatTime(end)}</div>
               </div>
             </div>
           `

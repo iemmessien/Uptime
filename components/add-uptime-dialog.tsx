@@ -20,6 +20,7 @@ interface AddUptimeDialogProps {
     testRun: boolean
     powers: string[]
   } | null
+  onSuccess?: () => void
 }
 
 interface PowerSelection {
@@ -39,7 +40,7 @@ interface PowerSelection {
   gen12: boolean
 }
 
-export function AddUptimeDialog({ open, onOpenChange, uptimeId = null, existingData = null }: AddUptimeDialogProps) {
+export function AddUptimeDialog({ open, onOpenChange, uptimeId = null, existingData = null, onSuccess }: AddUptimeDialogProps) {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [startTime, setStartTime] = useState("")
   const [endTime, setEndTime] = useState("")
@@ -141,6 +142,22 @@ export function AddUptimeDialog({ open, onOpenChange, uptimeId = null, existingD
   }, [startTime, endTime])
 
   const handlePowerChange = (key: keyof PowerSelection, checked: boolean) => {
+    // Prevent selecting grids (Ejigbo or Isolo) if Test Run is Yes
+    if (checked && testRun === "yes" && (key === 'ejigbo' || key === 'isolo')) {
+      toast.error("Test Run is only for generators. Please deselect the Test Run option to select grids.")
+      return
+    }
+
+    // Count currently selected generators
+    const generatorKeys: (keyof PowerSelection)[] = ['gen1', 'gen2', 'gen3', 'gen4', 'gen5', 'gen6', 'gen7', 'gen8', 'gen9', 'gen10', 'gen11', 'gen12']
+    const currentlySelectedGens = generatorKeys.filter(gen => powerSelection[gen])
+
+    // Prevent selecting more than 2 generators
+    if (checked && generatorKeys.includes(key) && currentlySelectedGens.length >= 2) {
+      toast.error("You can only select up to 2 generators at a time. Please deselect one generator first.")
+      return
+    }
+
     setPowerSelection(prev => ({ ...prev, [key]: checked }))
   }
 
@@ -268,8 +285,10 @@ export function AddUptimeDialog({ open, onOpenChange, uptimeId = null, existingD
       resetForm()
       onOpenChange(false)
 
-      // Refresh the page to show updated data
-      window.location.reload()
+      // Trigger refresh in parent component
+      if (onSuccess) {
+        onSuccess()
+      }
     } catch (error) {
       console.error('Error saving uptime:', error)
       toast.error("Failed to save uptime. Please try again.")
@@ -326,34 +345,48 @@ export function AddUptimeDialog({ open, onOpenChange, uptimeId = null, existingD
 
               {/* Row 2: Gen 1-6 */}
               <div className="flex gap-6 flex-wrap">
-                {['gen1', 'gen2', 'gen3', 'gen4', 'gen5', 'gen6'].map((gen) => (
-                  <div key={gen} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={gen}
-                      checked={powerSelection[gen as keyof PowerSelection]}
-                      onCheckedChange={(checked: boolean) => handlePowerChange(gen as keyof PowerSelection, checked)}
-                    />
-                    <Label htmlFor={gen} className="text-sm text-gray-900 cursor-pointer">
-                      Gen {gen.replace('gen', '')}
-                    </Label>
-                  </div>
-                ))}
+                {['gen1', 'gen2', 'gen3', 'gen4', 'gen5', 'gen6'].map((gen) => {
+                  const generatorKeys: (keyof PowerSelection)[] = ['gen1', 'gen2', 'gen3', 'gen4', 'gen5', 'gen6', 'gen7', 'gen8', 'gen9', 'gen10', 'gen11', 'gen12']
+                  const selectedGens = generatorKeys.filter(g => powerSelection[g])
+                  const isDisabled = selectedGens.length >= 2 && !powerSelection[gen as keyof PowerSelection]
+                  
+                  return (
+                    <div key={gen} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={gen}
+                        checked={powerSelection[gen as keyof PowerSelection]}
+                        disabled={isDisabled}
+                        onCheckedChange={(checked: boolean) => handlePowerChange(gen as keyof PowerSelection, checked)}
+                      />
+                      <Label htmlFor={gen} className={`text-sm text-gray-900 ${isDisabled ? 'opacity-50' : 'cursor-pointer'}`}>
+                        Gen {gen.replace('gen', '')}
+                      </Label>
+                    </div>
+                  )
+                })}
               </div>
 
               {/* Row 3: Gen 7-12 */}
               <div className="flex gap-6 flex-wrap">
-                {['gen7', 'gen8', 'gen9', 'gen10', 'gen11', 'gen12'].map((gen) => (
-                  <div key={gen} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={gen}
-                      checked={powerSelection[gen as keyof PowerSelection]}
-                      onCheckedChange={(checked: boolean) => handlePowerChange(gen as keyof PowerSelection, checked)}
-                    />
-                    <Label htmlFor={gen} className="text-sm text-gray-900 cursor-pointer">
-                      Gen {gen.replace('gen', '')}
-                    </Label>
-                  </div>
-                ))}
+                {['gen7', 'gen8', 'gen9', 'gen10', 'gen11', 'gen12'].map((gen) => {
+                  const generatorKeys: (keyof PowerSelection)[] = ['gen1', 'gen2', 'gen3', 'gen4', 'gen5', 'gen6', 'gen7', 'gen8', 'gen9', 'gen10', 'gen11', 'gen12']
+                  const selectedGens = generatorKeys.filter(g => powerSelection[g])
+                  const isDisabled = selectedGens.length >= 2 && !powerSelection[gen as keyof PowerSelection]
+                  
+                  return (
+                    <div key={gen} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={gen}
+                        checked={powerSelection[gen as keyof PowerSelection]}
+                        disabled={isDisabled}
+                        onCheckedChange={(checked: boolean) => handlePowerChange(gen as keyof PowerSelection, checked)}
+                      />
+                      <Label htmlFor={gen} className={`text-sm text-gray-900 ${isDisabled ? 'opacity-50' : 'cursor-pointer'}`}>
+                        Gen {gen.replace('gen', '')}
+                      </Label>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           </div>
@@ -375,7 +408,7 @@ export function AddUptimeDialog({ open, onOpenChange, uptimeId = null, existingD
 
             <div className="space-y-2">
               <Label className="text-sm font-medium text-gray-900">
-                Duration:
+                Uptime duration:
               </Label>
               <div className="text-sm text-gray-900 font-semibold py-2">
                 {duration}
@@ -403,7 +436,14 @@ export function AddUptimeDialog({ open, onOpenChange, uptimeId = null, existingD
           {/* Test Run */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-900">Test Run?</Label>
-            <RadioGroup value={testRun} onValueChange={setTestRun} className="flex gap-4">
+            <RadioGroup value={testRun} onValueChange={(value) => {
+              // Check if grids are selected when switching to Yes
+              if (value === "yes" && (powerSelection.ejigbo || powerSelection.isolo)) {
+                toast.error("Test Run is only for generators. Please deselect Ejigbo and Isolo first.")
+                return
+              }
+              setTestRun(value)
+            }} className="flex gap-4">
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="yes" id="test-yes" />
                 <Label htmlFor="test-yes" className="text-sm text-gray-900 cursor-pointer">

@@ -36,12 +36,12 @@ function getDaysInMonth(month: number, year: number): number {
   return new Date(year, month + 1, 0).getDate();
 }
 
-export function AvailabilityChart() {
+export function AvailabilityChart({ refreshKey }: { refreshKey?: number }) {
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [mounted, setMounted] = useState(false);
-  const [chartData, setChartData] = useState({ ejigboData: [], isoloData: [], generatorsData: [] });
+  const [chartData, setChartData] = useState<{ ejigboData: number[], isoloData: number[], generatorsData: number[] }>({ ejigboData: [], isoloData: [], generatorsData: [] });
   const [loading, setLoading] = useState(true);
 
   const daysInMonth = getDaysInMonth(selectedMonth, selectedYear);
@@ -53,7 +53,7 @@ export function AvailabilityChart() {
 
   useEffect(() => {
     fetchAvailabilityData();
-  }, [selectedMonth, selectedYear]);
+  }, [selectedMonth, selectedYear, refreshKey]);
 
   const fetchAvailabilityData = async () => {
     setLoading(true);
@@ -77,20 +77,39 @@ export function AvailabilityChart() {
         const isoloData = Array(daysInMonth).fill(0);
         const generatorsData = Array(daysInMonth).fill(0);
 
-        // Process uptimes and aggregate run time (availability) by day
+        // Group uptimes by event (date + startTime + testRun)
+        const eventMap = new Map<string, any[]>();
         data.uptimes.forEach((uptime: any) => {
-          const uptimeDate = new Date(uptime.date);
+          const eventKey = `${uptime.date}-${uptime.startTime}-${uptime.testRun}`;
+          if (!eventMap.has(eventKey)) {
+            eventMap.set(eventKey, []);
+          }
+          eventMap.get(eventKey)!.push(uptime);
+        });
+
+        // Process each event
+        eventMap.forEach((uptimes) => {
+          const firstUptime = uptimes[0];
+          const uptimeDate = new Date(firstUptime.date);
           const day = uptimeDate.getDate() - 1; // 0-indexed
 
           if (day >= 0 && day < daysInMonth) {
-            const durationHours = uptime.duration / 60; // Convert minutes to hours
+            const durationHours = firstUptime.duration / 60; // Convert minutes to hours
 
-            if (uptime.powerSupply === 'Ejigbo') {
+            // Check which power supplies are in this event
+            const hasEjigbo = uptimes.some(u => u.powerSupply === 'Ejigbo');
+            const hasIsolo = uptimes.some(u => u.powerSupply === 'Isolo');
+            const hasGenerators = uptimes.some(u => u.powerSupply.startsWith('Generator'));
+
+            // For Ejigbo and Isolo, use their individual durations
+            if (hasEjigbo) {
               ejigboData[day] += durationHours;
-            } else if (uptime.powerSupply === 'Isolo') {
+            }
+            if (hasIsolo) {
               isoloData[day] += durationHours;
-            } else if (uptime.powerSupply.startsWith('Generator')) {
-              // Aggregate all generators
+            }
+            // For generators, use run time once (not sum of all generators)
+            if (hasGenerators) {
               generatorsData[day] += durationHours;
             }
           }

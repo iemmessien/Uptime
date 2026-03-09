@@ -29,7 +29,7 @@ model Admin {
 model Uptime {
   id          String       @id @default(cuid())
   startTime   DateTime
-  endTime     DateTime
+  endTime     DateTime?
   runTime     Int          // Duration in minutes or seconds
   utilization Float        // Percentage
   testRun     Boolean      @default(false)

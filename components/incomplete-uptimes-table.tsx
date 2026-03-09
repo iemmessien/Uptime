@@ -105,7 +105,7 @@ const POWER_SUPPLIES = [
   'G12'
 ];
 
-export function IncompleteUptimesTable() {
+export function IncompleteUptimesTable({ refreshKey, onRefresh }: { refreshKey?: number; onRefresh?: () => void }) {
   const [incompleteUptimes, setIncompleteUptimes] = useState<IncompleteUptime[]>([]);
   const [loading, setLoading] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -115,7 +115,7 @@ export function IncompleteUptimesTable() {
 
   useEffect(() => {
     fetchIncompleteUptimes();
-  }, []);
+  }, [refreshKey]);
 
   const fetchIncompleteUptimes = async () => {
     setLoading(true);
@@ -322,6 +322,7 @@ export function IncompleteUptimesTable() {
           testRun: selectedUptime.testRun,
           powers: selectedUptime.powers
         } : null}
+        onSuccess={onRefresh}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
