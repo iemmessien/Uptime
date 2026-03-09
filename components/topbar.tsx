@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import { Menu, ChevronDown, Eye, EyeOff } from "lucide-react";
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useViewMode } from "@/lib/view-mode-context";
+import { ImportExportDialog } from "@/components/import-export-dialog";
 
 interface TopbarProps {
   username: string;
@@ -42,6 +44,7 @@ export function Topbar({ username, onToggleSidebar }: TopbarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { viewMode, toggleViewMode } = useViewMode();
+  const [importExportOpen, setImportExportOpen] = useState(false);
 
   const currentPage = menuItems.find((item) => item.path === pathname);
   const currentLabel = currentPage?.label || "Main";
@@ -142,10 +145,10 @@ export function Topbar({ username, onToggleSidebar }: TopbarProps) {
           </div>
           <DropdownMenuSeparator />
           <DropdownMenuItem 
-            onClick={() => router.push("/import")}
+            onClick={() => setImportExportOpen(true)}
             className="hover:bg-orange-50 hover:text-orange-600 focus:bg-orange-50 focus:text-orange-600"
           >
-            Import Uptime
+            Import / Export
           </DropdownMenuItem>
           <DropdownMenuItem 
             onClick={() => toggleViewMode()}
@@ -180,6 +183,11 @@ export function Topbar({ username, onToggleSidebar }: TopbarProps) {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <ImportExportDialog 
+        open={importExportOpen} 
+        onOpenChange={setImportExportOpen}
+      />
     </div>
   );
 }
