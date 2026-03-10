@@ -135,34 +135,29 @@ export function TestRunTab({ refreshKey, onRefresh }: { refreshKey?: number; onR
     }
   };
 
+  // Use React Query hook for data fetching with caching
+  const { data: uptimes = [], isLoading, error } = useUptimeData(
+    selectedMonth,
+    selectedYear,
+    refreshKey
+  );
+
+  // Process uptime data when it changes
   useEffect(() => {
-    fetchUptimeData();
-  }, [selectedMonth, selectedYear, refreshKey]);
+    setLoading(isLoading);
+    
+    if (!uptimes || uptimes.length === 0) {
+      setDayDataMap(new Map());
+      return;
+    }
 
-  const fetchUptimeData = async () => {
-    setLoading(true);
-    try {
-      const startDate = new Date(selectedYear, selectedMonth, 1);
-      const endDate = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
+    // Group uptimes by day and time interval
+    const dayMap = new Map<number, DayData>();
 
-      const url = `/uptime/api/uptime/list?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        console.error("Failed to fetch uptime data");
-        return;
-      }
+    // First, group uptimes by day and time interval (startTime-endTime combination)
+    const timeIntervalMap = new Map<string, UptimeRecord[]>();
 
-      const data = await response.json();
-      const uptimes: UptimeRecord[] = data.uptimes || [];
-
-      // Group uptimes by day and time interval
-      const dayMap = new Map<number, DayData>();
-
-      // First, group uptimes by day and time interval (startTime-endTime combination)
-      const timeIntervalMap = new Map<string, UptimeRecord[]>();
-
-      uptimes.forEach((uptime) => {
+    uptimes.forEach((uptime) => {
         // Only include COMPLETE test run uptimes
         if (!uptime.endTime || !uptime.testRun) {
           return;
@@ -257,18 +252,19 @@ export function TestRunTab({ refreshKey, onRefresh }: { refreshKey?: number; onR
         dayData.totals.g6_test += intervalTotals.g6_test;
       });
       
-      // Sort intervals by start time in ascending order
-      dayMap.forEach((dayData) => {
-        dayData.intervals.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-      });
-      
-      setDayDataMap(dayMap);
-    } catch (error) {
-      console.error("Error fetching uptime data:", error);
-    } finally {
-      setLoading(false);
+    // Sort intervals by start time in ascending order
+    dayMap.forEach((dayData) => {
+      dayData.intervals.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+    });
+    
+    setDayDataMap(dayMap);
+  }, [uptimes, isLoading]);
+
+  useEffect(() => {
+    if (error) {
+      console.error("❌ Error fetching uptime data:", error);
     }
-  };
+  }, [error]);
 
   const toggleRow = (day: number) => {
     const dayData = dayDataMap.get(day);
@@ -312,8 +308,10 @@ export function TestRunTab({ refreshKey, onRefresh }: { refreshKey?: number; onR
       setDeleteDialogOpen(false);
       setIntervalToDelete(null);
       
-      // Refresh the data
-      fetchUptimeData();
+      // Refresh the data by calling the parent's onRefresh callback
+      if (onRefresh) {
+        onRefresh();
+      }
     } catch (error) {
       console.error('Error deleting uptime:', error);
       toast.error("Failed to delete uptime. Please try again.");

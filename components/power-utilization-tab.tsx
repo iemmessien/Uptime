@@ -129,38 +129,29 @@ export function PowerUtilizationTab({ refreshKey, onRefresh }: { refreshKey?: nu
     }
   };
 
+  // Use React Query hook for data fetching with caching
+  const { data: uptimes = [], isLoading, error } = useUptimeData(
+    selectedMonth,
+    selectedYear,
+    refreshKey
+  );
+
+  // Process uptime data when it changes
   useEffect(() => {
-    fetchUptimeData();
-  }, [selectedMonth, selectedYear, refreshKey]);
+    setLoading(isLoading);
+    
+    if (!uptimes || uptimes.length === 0) {
+      setDayDataMap(new Map());
+      return;
+    }
 
-  const fetchUptimeData = async () => {
-    setLoading(true);
-    try {
-      // Fetch uptime data for the selected month/year
-      const startDate = new Date(selectedYear, selectedMonth, 1);
-      const endDate = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
+    // Group uptimes by day and time interval
+    const dayMap = new Map<number, DayData>();
 
-      const url = `/uptime/api/uptime/list?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
+    // First, group uptimes by day and time interval (startTime-endTime combination)
+    const timeIntervalMap = new Map<string, UptimeRecord[]>();
 
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("❌ Failed to fetch uptime data. Status:", response.status);
-        console.error("❌ Error response:", errorText);
-        return;
-      }
-
-      const data = await response.json();
-      const uptimes: UptimeRecord[] = data.uptimes || [];
-
-      // Group uptimes by day and time interval
-      const dayMap = new Map<number, DayData>();
-
-      // First, group uptimes by day and time interval (startTime-endTime combination)
-      const timeIntervalMap = new Map<string, UptimeRecord[]>();
-
-      uptimes.forEach((uptime) => {
+    uptimes.forEach((uptime) => {
         // Only include COMPLETE uptimes (those with both startTime and endTime)
         if (!uptime.endTime) {
           return; // Skip this uptime if it doesn't have an end time
@@ -249,18 +240,19 @@ export function PowerUtilizationTab({ refreshKey, onRefresh }: { refreshKey?: nu
         dayData.totals.generators_uz += intervalTotals.generators_uz;
       });
       
-      // Sort intervals by start time in ascending order
-      dayMap.forEach((dayData) => {
-        dayData.intervals.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-      });
-      
-      setDayDataMap(dayMap);
-    } catch (error) {
+    // Sort intervals by start time in ascending order
+    dayMap.forEach((dayData) => {
+      dayData.intervals.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+    });
+    
+    setDayDataMap(dayMap);
+  }, [uptimes, isLoading]);
+
+  useEffect(() => {
+    if (error) {
       console.error("❌ Error fetching uptime data:", error);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [error]);
 
   const toggleRow = (day: number) => {
     const dayData = dayDataMap.get(day);
@@ -304,8 +296,10 @@ export function PowerUtilizationTab({ refreshKey, onRefresh }: { refreshKey?: nu
       setDeleteDialogOpen(false);
       setIntervalToDelete(null);
       
-      // Refresh the data
-      fetchUptimeData();
+      // Refresh the data by calling the parent's onRefresh callback
+      if (onRefresh) {
+        onRefresh();
+      }
     } catch (error) {
       console.error('Error deleting uptime:', error);
       toast.error("Failed to delete uptime. Please try again.");

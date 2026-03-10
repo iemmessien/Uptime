@@ -139,160 +139,152 @@ export function PowerAvailabilityTab({ refreshKey, onRefresh }: { refreshKey?: n
     }
   };
 
+  // Use React Query hook for data fetching with caching
+  const { data: uptimes = [], isLoading, error } = useUptimeData(
+    selectedMonth,
+    selectedYear,
+    refreshKey
+  );
+
+  // Process uptime data when it changes
   useEffect(() => {
-    fetchUptimeData();
-  }, [selectedMonth, selectedYear, refreshKey]);
+    setLoading(isLoading);
+    
+    if (!uptimes || uptimes.length === 0) {
+      setDayDataMap(new Map());
+      return;
+    }
 
-  const fetchUptimeData = async () => {
-    setLoading(true);
-    try {
-      // Fetch uptime data for the selected month/year
-      const startDate = new Date(selectedYear, selectedMonth, 1);
-      const endDate = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
+    // Group uptimes by day and time interval
+    const dayMap = new Map<number, DayData>();
 
-      const url = `/uptime/api/uptime/list?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
+    // First, group uptimes by day and time interval (startTime-endTime combination)
+    const timeIntervalMap = new Map<string, UptimeRecord[]>();
 
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("❌ Failed to fetch uptime data. Status:", response.status);
-        console.error("❌ Error response:", errorText);
-        return;
+    uptimes.forEach((uptime) => {
+      // Only include COMPLETE uptimes (those with both startTime and endTime)
+      if (!uptime.endTime) {
+        return; // Skip this uptime if it doesn't have an end time
       }
 
-      const data = await response.json();
-      const uptimes: UptimeRecord[] = data.uptimes || [];
-
-      // Group uptimes by day and time interval
-      const dayMap = new Map<number, DayData>();
-
-      // First, group uptimes by day and time interval (startTime-endTime combination)
-      const timeIntervalMap = new Map<string, UptimeRecord[]>();
-
-      uptimes.forEach((uptime) => {
-        // Only include COMPLETE uptimes (those with both startTime and endTime)
-        if (!uptime.endTime) {
-          return; // Skip this uptime if it doesn't have an end time
-        }
-
-        const uptimeDate = new Date(uptime.date);
-        const day = uptimeDate.getDate();
-        
-        // Create a unique key for each time interval within a day
-        const timeKey = `${day}-${uptime.startTime}-${uptime.endTime}`;
-        
-        if (!timeIntervalMap.has(timeKey)) {
-          timeIntervalMap.set(timeKey, []);
-        }
-        timeIntervalMap.get(timeKey)!.push(uptime);
-      });
-
-      // Now process each time interval group
-      timeIntervalMap.forEach((intervalUptimes, timeKey) => {
-        const day = parseInt(timeKey.split('-')[0]);
-
-        if (!dayMap.has(day)) {
-          dayMap.set(day, {
-            day,
-            intervals: [],
-            totals: {
-              ejigbo_av: 0,
-              isolo_av: 0,
-              g1_av: 0,
-              g2_av: 0,
-              g3_av: 0,
-              g4_av: 0,
-              g5_av: 0,
-              g6_av: 0,
-            },
-          });
-        }
-
-        // Get the first uptime to extract start/end times and duration
-        const firstUptime = intervalUptimes[0];
-        
-        // Calculate totals for this time interval across all power supplies
-        let intervalTotals = {
-          ejigbo_av: 0,
-          isolo_av: 0,
-          g1_av: 0,
-          g2_av: 0,
-          g3_av: 0,
-          g4_av: 0,
-          g5_av: 0,
-          g6_av: 0,
-        };
-
-        intervalUptimes.forEach((uptime) => {
-          switch (uptime.powerSupply) {
-            case "Ejigbo":
-              intervalTotals.ejigbo_av += uptime.duration;
-              break;
-            case "Isolo":
-              intervalTotals.isolo_av += uptime.duration;
-              break;
-            case "Generator 1":
-              intervalTotals.g1_av += uptime.duration;
-              break;
-            case "Generator 2":
-              intervalTotals.g2_av += uptime.duration;
-              break;
-            case "Generator 3":
-              intervalTotals.g3_av += uptime.duration;
-              break;
-            case "Generator 4":
-              intervalTotals.g4_av += uptime.duration;
-              break;
-            case "Generator 5":
-              intervalTotals.g5_av += uptime.duration;
-              break;
-            case "Generator 6":
-              intervalTotals.g6_av += uptime.duration;
-              break;
-          }
-        });
-
-        // Create a time interval object
-        const timeInterval: TimeInterval = {
-          startTime: firstUptime.startTime,
-          endTime: firstUptime.endTime!,
-          duration: firstUptime.duration,
-          powerSupplies: intervalUptimes,
-          totals: intervalTotals,
-        };
-
-        // Add this interval to the day's intervals
-        dayMap.get(day)!.intervals.push(timeInterval);
-        
-        // Add interval totals to day totals
-        const dayData = dayMap.get(day)!;
-        dayData.totals.ejigbo_av += intervalTotals.ejigbo_av;
-        dayData.totals.isolo_av += intervalTotals.isolo_av;
-        dayData.totals.g1_av += intervalTotals.g1_av;
-        dayData.totals.g2_av += intervalTotals.g2_av;
-        dayData.totals.g3_av += intervalTotals.g3_av;
-        dayData.totals.g4_av += intervalTotals.g4_av;
-        dayData.totals.g5_av += intervalTotals.g5_av;
-        dayData.totals.g6_av += intervalTotals.g6_av;
-      });
-
-      // Sort intervals by start time (ascending order)
-      dayMap.forEach((dayData) => {
-        dayData.intervals.sort((a, b) => {
-          const timeA = new Date(a.startTime).getTime();
-          const timeB = new Date(b.startTime).getTime();
-          return timeA - timeB;
-        });
-      });
+      const uptimeDate = new Date(uptime.date);
+      const day = uptimeDate.getDate();
       
-      setDayDataMap(dayMap);
-    } catch (error) {
+      // Create a unique key for each time interval within a day
+      const timeKey = `${day}-${uptime.startTime}-${uptime.endTime}`;
+      
+      if (!timeIntervalMap.has(timeKey)) {
+        timeIntervalMap.set(timeKey, []);
+      }
+      timeIntervalMap.get(timeKey)!.push(uptime);
+    });
+
+    // Now process each time interval group
+    timeIntervalMap.forEach((intervalUptimes, timeKey) => {
+      const day = parseInt(timeKey.split('-')[0]);
+
+      if (!dayMap.has(day)) {
+        dayMap.set(day, {
+          day,
+          intervals: [],
+          totals: {
+            ejigbo_av: 0,
+            isolo_av: 0,
+            g1_av: 0,
+            g2_av: 0,
+            g3_av: 0,
+            g4_av: 0,
+            g5_av: 0,
+            g6_av: 0,
+          },
+        });
+      }
+
+      // Get the first uptime to extract start/end times and duration
+      const firstUptime = intervalUptimes[0];
+      
+      // Calculate totals for this time interval across all power supplies
+      let intervalTotals = {
+        ejigbo_av: 0,
+        isolo_av: 0,
+        g1_av: 0,
+        g2_av: 0,
+        g3_av: 0,
+        g4_av: 0,
+        g5_av: 0,
+        g6_av: 0,
+      };
+
+      intervalUptimes.forEach((uptime) => {
+        switch (uptime.powerSupply) {
+          case "Ejigbo":
+            intervalTotals.ejigbo_av += uptime.duration;
+            break;
+          case "Isolo":
+            intervalTotals.isolo_av += uptime.duration;
+            break;
+          case "Generator 1":
+            intervalTotals.g1_av += uptime.duration;
+            break;
+          case "Generator 2":
+            intervalTotals.g2_av += uptime.duration;
+            break;
+          case "Generator 3":
+            intervalTotals.g3_av += uptime.duration;
+            break;
+          case "Generator 4":
+            intervalTotals.g4_av += uptime.duration;
+            break;
+          case "Generator 5":
+            intervalTotals.g5_av += uptime.duration;
+            break;
+          case "Generator 6":
+            intervalTotals.g6_av += uptime.duration;
+            break;
+        }
+      });
+
+      // Create a time interval object
+      const timeInterval: TimeInterval = {
+        startTime: firstUptime.startTime,
+        endTime: firstUptime.endTime!,
+        duration: firstUptime.duration,
+        powerSupplies: intervalUptimes,
+        totals: intervalTotals,
+      };
+
+      // Add this interval to the day's intervals
+      dayMap.get(day)!.intervals.push(timeInterval);
+      
+      // Add interval totals to day totals
+      const dayData = dayMap.get(day)!;
+      dayData.totals.ejigbo_av += intervalTotals.ejigbo_av;
+      dayData.totals.isolo_av += intervalTotals.isolo_av;
+      dayData.totals.g1_av += intervalTotals.g1_av;
+      dayData.totals.g2_av += intervalTotals.g2_av;
+      dayData.totals.g3_av += intervalTotals.g3_av;
+      dayData.totals.g4_av += intervalTotals.g4_av;
+      dayData.totals.g5_av += intervalTotals.g5_av;
+      dayData.totals.g6_av += intervalTotals.g6_av;
+    });
+
+    // Sort intervals by start time (ascending order)
+    dayMap.forEach((dayData) => {
+      dayData.intervals.sort((a, b) => {
+        const timeA = new Date(a.startTime).getTime();
+        const timeB = new Date(b.startTime).getTime();
+        return timeA - timeB;
+      });
+    });
+    
+    setDayDataMap(dayMap);
+  }, [uptimes, isLoading]);
+
+  useEffect(() => {
+    if (error) {
       console.error("❌ Error fetching uptime data:", error);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [error]);
 
   const toggleRow = (day: number) => {
     const dayData = dayDataMap.get(day);
@@ -336,8 +328,10 @@ export function PowerAvailabilityTab({ refreshKey, onRefresh }: { refreshKey?: n
       setDeleteDialogOpen(false);
       setIntervalToDelete(null);
       
-      // Refresh the data
-      fetchUptimeData();
+      // Refresh the data by calling the parent's onRefresh callback
+      if (onRefresh) {
+        onRefresh();
+      }
     } catch (error) {
       console.error('Error deleting uptime:', error);
       toast.error("Failed to delete uptime. Please try again.");
