@@ -22,7 +22,7 @@ async function fetchUptimeData(
   startDate: string,
   endDate: string
 ): Promise<UptimeRecord[]> {
-  const url = `/uptime/api/uptime/list?startDate=${startDate}&endDate=${endDate}`;
+  const url = `/api/uptime/list?startDate=${startDate}&endDate=${endDate}`;
 
   const response = await fetch(url);
 

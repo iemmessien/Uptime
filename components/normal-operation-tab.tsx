@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useUptimeData } from "@/lib/use-uptime-data";
 import {
   Select,
@@ -111,39 +111,12 @@ export function NormalOperationTab({ refreshKey, onRefresh }: { refreshKey?: num
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
-  const [dayDataMap, setDayDataMap] = useState<Map<number, DayData>>(new Map());
-  const [loading, setLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [intervalToDelete, setIntervalToDelete] = useState<TimeInterval | null>(null);
   const tableRef = useRef<HTMLTableElement>(null);
   const topScrollRef = useRef<HTMLDivElement>(null);
 
   const daysInMonth = getDaysInMonth(selectedMonth, selectedYear);
-
-  // Sync the width of top scrollbar with table width
-  useEffect(() => {
-    if (tableRef.current && topScrollRef.current) {
-      const scrollContent = topScrollRef.current.firstChild as HTMLElement;
-      if (scrollContent) {
-        scrollContent.style.width = `${tableRef.current.scrollWidth}px`;
-      }
-    }
-  }, [dayDataMap, loading]);
-
-  // Scroll sync for top scrollbar
-  const handleTopScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const bottomScroll = document.getElementById('bottom-scroll');
-    if (bottomScroll) {
-      bottomScroll.scrollLeft = e.currentTarget.scrollLeft;
-    }
-  };
-
-  const handleBottomScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const topScroll = document.getElementById('top-scroll');
-    if (topScroll) {
-      topScroll.scrollLeft = e.currentTarget.scrollLeft;
-    }
-  };
 
   // Use React Query hook for data fetching with caching
   const { data: uptimes = [], isLoading, error } = useUptimeData(
@@ -152,13 +125,10 @@ export function NormalOperationTab({ refreshKey, onRefresh }: { refreshKey?: num
     refreshKey
   );
 
-  // Process uptime data when it changes
-  useEffect(() => {
-    setLoading(isLoading);
-    
-    if (!uptimes || uptimes.length === 0) {
-      setDayDataMap(new Map());
-      return;
+  // Process uptime data using useMemo to prevent infinite loops
+  const dayDataMap = useMemo(() => {
+    if (isLoading || !uptimes || uptimes.length === 0) {
+      return new Map<number, DayData>();
     }
 
     // Group uptimes by day and time interval
@@ -307,8 +277,33 @@ export function NormalOperationTab({ refreshKey, onRefresh }: { refreshKey?: num
         });
       });
       
-      setDayDataMap(dayMap);
+      return dayMap;
   }, [uptimes, isLoading]);
+
+  // Sync the width of top scrollbar with table width
+  useEffect(() => {
+    if (tableRef.current && topScrollRef.current) {
+      const scrollContent = topScrollRef.current.firstChild as HTMLElement;
+      if (scrollContent) {
+        scrollContent.style.width = `${tableRef.current.scrollWidth}px`;
+      }
+    }
+  }, [dayDataMap]);
+
+  // Scroll sync for top scrollbar
+  const handleTopScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const bottomScroll = document.getElementById('bottom-scroll');
+    if (bottomScroll) {
+      bottomScroll.scrollLeft = e.currentTarget.scrollLeft;
+    }
+  };
+
+  const handleBottomScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const topScroll = document.getElementById('top-scroll');
+    if (topScroll) {
+      topScroll.scrollLeft = e.currentTarget.scrollLeft;
+    }
+  };
 
   useEffect(() => {
     if (error) {
@@ -530,12 +525,12 @@ export function NormalOperationTab({ refreshKey, onRefresh }: { refreshKey?: num
       </div>
 
       {/* Loading State */}
-      {loading && (
+      {isLoading && (
         <div className="text-center py-8 text-gray-500">Loading uptime data...</div>
       )}
 
-      {/* Uptime Table */}
-      {!loading && (
+      {/* Table */}
+      {!isLoading && (
         <>
           {/* Top Scrollbar */}
           <div 

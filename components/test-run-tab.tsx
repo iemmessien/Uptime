@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useUptimeData } from "@/lib/use-uptime-data";
 import {
   Select,
@@ -101,24 +101,12 @@ export function TestRunTab({ refreshKey, onRefresh }: { refreshKey?: number; onR
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
-  const [dayDataMap, setDayDataMap] = useState<Map<number, DayData>>(new Map());
-  const [loading, setLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [intervalToDelete, setIntervalToDelete] = useState<TimeInterval | null>(null);
   const tableRef = useRef<HTMLTableElement>(null);
   const topScrollRef = useRef<HTMLDivElement>(null);
 
   const daysInMonth = getDaysInMonth(selectedMonth, selectedYear);
-
-  // Sync the width of top scrollbar with table width
-  useEffect(() => {
-    if (tableRef.current && topScrollRef.current) {
-      const scrollContent = topScrollRef.current.firstChild as HTMLElement;
-      if (scrollContent) {
-        scrollContent.style.width = `${tableRef.current.scrollWidth}px`;
-      }
-    }
-  }, [dayDataMap, loading]);
 
   // Scroll sync for top scrollbar
   const handleTopScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -142,13 +130,10 @@ export function TestRunTab({ refreshKey, onRefresh }: { refreshKey?: number; onR
     refreshKey
   );
 
-  // Process uptime data when it changes
-  useEffect(() => {
-    setLoading(isLoading);
-    
-    if (!uptimes || uptimes.length === 0) {
-      setDayDataMap(new Map());
-      return;
+  // Process uptime data using useMemo to prevent infinite loops
+  const dayDataMap = useMemo(() => {
+    if (isLoading || !uptimes || uptimes.length === 0) {
+      return new Map<number, DayData>();
     }
 
     // Group uptimes by day and time interval
@@ -257,8 +242,18 @@ export function TestRunTab({ refreshKey, onRefresh }: { refreshKey?: number; onR
       dayData.intervals.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
     });
     
-    setDayDataMap(dayMap);
+    return dayMap;
   }, [uptimes, isLoading]);
+
+  // Sync the width of top scrollbar with table width
+  useEffect(() => {
+    if (tableRef.current && topScrollRef.current) {
+      const scrollContent = topScrollRef.current.firstChild as HTMLElement;
+      if (scrollContent) {
+        scrollContent.style.width = `${tableRef.current.scrollWidth}px`;
+      }
+    }
+  }, [dayDataMap]);
 
   useEffect(() => {
     if (error) {
@@ -461,12 +456,12 @@ export function TestRunTab({ refreshKey, onRefresh }: { refreshKey?: number; onR
       </div>
 
       {/* Loading State */}
-      {loading && (
+      {isLoading && (
         <div className="text-center py-8 text-gray-500">Loading test run data...</div>
       )}
 
       {/* Test Run Table */}
-      {!loading && (
+      {!isLoading && (
         <>
           {/* Top Scrollbar */}
           <div 
