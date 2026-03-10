@@ -225,7 +225,7 @@ async function main() {
       } else if (config < 0.75) {
         // One or two generators
         const numGens = Math.random() > 0.5 ? 1 : 2
-        const selectedGens = []
+        const selectedGens: typeof allGenerators = []
         for (let g = 0; g < numGens; g++) {
           selectedGens.push(randomElement(allGenerators))
         }

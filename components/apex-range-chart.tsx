@@ -21,7 +21,7 @@ interface UptimeData {
    duration: number
 }
 
-type ViewMode = "Day" | "Week" | "Month" | "Year"
+type ViewMode = "Day" | "Week"
 
 const POWER_SUPPLIES = [
    "Ejigbo",
@@ -43,7 +43,7 @@ const POWER_SUPPLIES = [
 export function UptimeRangeChart({ type, selectedDate: initialDate }: UptimeRangeChartProps) {
    const [uptimeData, setUptimeData] = useState<UptimeData[]>([])
    const [loading, setLoading] = useState(true)
-   const [viewMode, setViewMode] = useState<ViewMode>("Month")
+   const [viewMode, setViewMode] = useState<ViewMode>("Day")
    const [selectedDate, setSelectedDate] = useState<Date>(initialDate)
 
    useEffect(() => {
@@ -63,12 +63,6 @@ export function UptimeRangeChart({ type, selectedDate: initialDate }: UptimeRang
          case 'Week':
             newDate.setDate(newDate.getDate() - 7)
             break
-         case 'Month':
-            newDate.setMonth(newDate.getMonth() - 1)
-            break
-         case 'Year':
-            newDate.setFullYear(newDate.getFullYear() - 1)
-            break
       }
       setSelectedDate(newDate)
    }
@@ -81,12 +75,6 @@ export function UptimeRangeChart({ type, selectedDate: initialDate }: UptimeRang
             break
          case 'Week':
             newDate.setDate(newDate.getDate() + 7)
-            break
-         case 'Month':
-            newDate.setMonth(newDate.getMonth() + 1)
-            break
-         case 'Year':
-            newDate.setFullYear(newDate.getFullYear() + 1)
             break
       }
       setSelectedDate(newDate)
@@ -115,15 +103,6 @@ export function UptimeRangeChart({ type, selectedDate: initialDate }: UptimeRang
                month: 'long',
                day: 'numeric'
             })}`
-         case 'Month':
-            return selectedDate.toLocaleDateString('en-US', {
-               year: 'numeric',
-               month: 'long'
-            })
-         case 'Year':
-            return selectedDate.toLocaleDateString('en-US', {
-               year: 'numeric'
-            })
       }
    }
 
@@ -200,10 +179,9 @@ export function UptimeRangeChart({ type, selectedDate: initialDate }: UptimeRang
    }
 
    const getChartOptions = () => {
-      // Calculate boundaries for Day, Week, Month, and Year views
+      // Calculate boundaries for Day and Week views
       let rangeStart: number | undefined
       let rangeEnd: number | undefined
-      let monthSundays: Date[] = []
       
       if (viewMode === 'Day') {
          const startOfDay = new Date(selectedDate)
@@ -227,39 +205,6 @@ export function UptimeRangeChart({ type, selectedDate: initialDate }: UptimeRang
          
          rangeStart = sunday.getTime()
          rangeEnd = saturday.getTime()
-      } else if (viewMode === 'Month') {
-         // Get the first day of the month
-         const firstOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1)
-         
-         // Get the Sunday of the week containing the first day of the month
-         const dayOfWeek = firstOfMonth.getDay()
-         const firstSunday = new Date(firstOfMonth)
-         firstSunday.setDate(firstOfMonth.getDate() - dayOfWeek)
-         firstSunday.setHours(0, 0, 0, 0)
-         
-         // Calculate the 4 Sundays for the month
-         for (let i = 0; i < 4; i++) {
-            const sunday = new Date(firstSunday)
-            sunday.setDate(firstSunday.getDate() + (i * 7))
-            monthSundays.push(sunday)
-         }
-         
-         // Show exactly 4 weeks (28 days) from that Sunday
-         const endOfFourthWeek = new Date(firstSunday)
-         endOfFourthWeek.setDate(firstSunday.getDate() + 27)
-         endOfFourthWeek.setHours(23, 59, 59, 999)
-         
-         rangeStart = firstSunday.getTime()
-         rangeEnd = endOfFourthWeek.getTime()
-      } else if (viewMode === 'Year') {
-         // Get January 1st of the selected year
-         const january1 = new Date(selectedDate.getFullYear(), 0, 1, 0, 0, 0, 0)
-         
-         // Get December 31st of the selected year
-         const december31 = new Date(selectedDate.getFullYear(), 11, 31, 23, 59, 59, 999)
-         
-         rangeStart = january1.getTime()
-         rangeEnd = december31.getTime()
       }
 
       const chartOptions: any = {
@@ -374,45 +319,6 @@ export function UptimeRangeChart({ type, selectedDate: initialDate }: UptimeRang
             }
             chartOptions.xaxis.tickAmount = 7
             break
-         case 'Month':
-            // Show exactly 4 weeks (Sundays) on the x-axis
-            // Use a counter to track which label we're on
-            let labelCounter = 0
-            const sundayTicks = monthSundays.map(sunday => sunday.getTime())
-            
-            chartOptions.xaxis.tickAmount = 4
-            chartOptions.xaxis.labels.formatter = function(value: any, timestamp: number) {
-               if (!timestamp) return ''
-               
-               // Determine the week based on timestamp position relative to Sundays
-               for (let i = 0; i < sundayTicks.length; i++) {
-                  const currentSunday = sundayTicks[i]
-                  const nextSunday = sundayTicks[i + 1] || (currentSunday + 7 * 24 * 60 * 60 * 1000)
-                  
-                  // If timestamp is between this Sunday and the next, it's this week
-                  if (timestamp >= currentSunday && timestamp < nextSunday) {
-                     //return `Week ${i + 1}`
-                  }
-
-                  return `Week ${i + 1}`
-               }
-               
-               // If we're past all Sundays, it's week 4
-               if (timestamp >= sundayTicks[3]) {
-                  //return 'Week 4'
-               }
-               
-               // If before all Sundays, it's week 1
-               //return 'Week 1'
-            }
-            break
-         case 'Year':
-            chartOptions.xaxis.labels.format = 'MMM'
-            chartOptions.xaxis.labels.datetimeFormatter = {
-               month: 'MMM'
-            }
-            chartOptions.xaxis.tickAmount = 12
-            break
       }
 
       return chartOptions
@@ -466,8 +372,6 @@ export function UptimeRangeChart({ type, selectedDate: initialDate }: UptimeRang
                   <SelectContent>
                      <SelectItem value="Day">Day</SelectItem>
                      <SelectItem value="Week">Week</SelectItem>
-                     <SelectItem value="Month">Month</SelectItem>
-                     <SelectItem value="Year">Year</SelectItem>
                   </SelectContent>
                </Select>
             </div>

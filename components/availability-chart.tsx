@@ -41,7 +41,37 @@ export function AvailabilityChart({ refreshKey }: { refreshKey?: number }) {
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [mounted, setMounted] = useState(false);
-  const [chartData, setChartData] = useState<{ ejigboData: number[], isoloData: number[], generatorsData: number[] }>({ ejigboData: [], isoloData: [], generatorsData: [] });
+  const [chartData, setChartData] = useState<{ 
+    ejigboData: number[], 
+    isoloData: number[], 
+    gen1Data: number[], 
+    gen2Data: number[], 
+    gen3Data: number[], 
+    gen4Data: number[], 
+    gen5Data: number[], 
+    gen6Data: number[], 
+    gen7Data: number[], 
+    gen8Data: number[], 
+    gen9Data: number[], 
+    gen10Data: number[], 
+    gen11Data: number[], 
+    gen12Data: number[] 
+  }>({ 
+    ejigboData: [], 
+    isoloData: [], 
+    gen1Data: [], 
+    gen2Data: [], 
+    gen3Data: [], 
+    gen4Data: [], 
+    gen5Data: [], 
+    gen6Data: [], 
+    gen7Data: [], 
+    gen8Data: [], 
+    gen9Data: [], 
+    gen10Data: [], 
+    gen11Data: [], 
+    gen12Data: [] 
+  });
   const [loading, setLoading] = useState(true);
 
   const daysInMonth = getDaysInMonth(selectedMonth, selectedYear);
@@ -75,7 +105,18 @@ export function AvailabilityChart({ refreshKey }: { refreshKey?: number }) {
         // Initialize arrays with zeros for all days
         const ejigboData = Array(daysInMonth).fill(0);
         const isoloData = Array(daysInMonth).fill(0);
-        const generatorsData = Array(daysInMonth).fill(0);
+        const gen1Data = Array(daysInMonth).fill(0);
+        const gen2Data = Array(daysInMonth).fill(0);
+        const gen3Data = Array(daysInMonth).fill(0);
+        const gen4Data = Array(daysInMonth).fill(0);
+        const gen5Data = Array(daysInMonth).fill(0);
+        const gen6Data = Array(daysInMonth).fill(0);
+        const gen7Data = Array(daysInMonth).fill(0);
+        const gen8Data = Array(daysInMonth).fill(0);
+        const gen9Data = Array(daysInMonth).fill(0);
+        const gen10Data = Array(daysInMonth).fill(0);
+        const gen11Data = Array(daysInMonth).fill(0);
+        const gen12Data = Array(daysInMonth).fill(0);
 
         // Group uptimes by event (date + startTime + testRun)
         const eventMap = new Map<string, any[]>();
@@ -97,25 +138,56 @@ export function AvailabilityChart({ refreshKey }: { refreshKey?: number }) {
             const durationHours = firstUptime.duration / 60; // Convert minutes to hours
 
             // Check which power supplies are in this event
-            const hasEjigbo = uptimes.some(u => u.powerSupply === 'Ejigbo');
-            const hasIsolo = uptimes.some(u => u.powerSupply === 'Isolo');
-            const hasGenerators = uptimes.some(u => u.powerSupply.startsWith('Generator'));
-
-            // For Ejigbo and Isolo, use their individual durations
-            if (hasEjigbo) {
-              ejigboData[day] += durationHours;
-            }
-            if (hasIsolo) {
-              isoloData[day] += durationHours;
-            }
-            // For generators, use run time once (not sum of all generators)
-            if (hasGenerators) {
-              generatorsData[day] += durationHours;
-            }
+            uptimes.forEach((uptime) => {
+              switch (uptime.powerSupply) {
+                case 'Ejigbo':
+                  ejigboData[day] += durationHours;
+                  break;
+                case 'Isolo':
+                  isoloData[day] += durationHours;
+                  break;
+                case 'Generator 1':
+                  gen1Data[day] += durationHours;
+                  break;
+                case 'Generator 2':
+                  gen2Data[day] += durationHours;
+                  break;
+                case 'Generator 3':
+                  gen3Data[day] += durationHours;
+                  break;
+                case 'Generator 4':
+                  gen4Data[day] += durationHours;
+                  break;
+                case 'Generator 5':
+                  gen5Data[day] += durationHours;
+                  break;
+                case 'Generator 6':
+                  gen6Data[day] += durationHours;
+                  break;
+                case 'Generator 7':
+                  gen7Data[day] += durationHours;
+                  break;
+                case 'Generator 8':
+                  gen8Data[day] += durationHours;
+                  break;
+                case 'Generator 9':
+                  gen9Data[day] += durationHours;
+                  break;
+                case 'Generator 10':
+                  gen10Data[day] += durationHours;
+                  break;
+                case 'Generator 11':
+                  gen11Data[day] += durationHours;
+                  break;
+                case 'Generator 12':
+                  gen12Data[day] += durationHours;
+                  break;
+              }
+            });
           }
         });
 
-        setChartData({ ejigboData, isoloData, generatorsData });
+        setChartData({ ejigboData, isoloData, gen1Data, gen2Data, gen3Data, gen4Data, gen5Data, gen6Data, gen7Data, gen8Data, gen9Data, gen10Data, gen11Data, gen12Data });
       }
     } catch (error) {
       console.error('Error fetching availability data:', error);
@@ -123,7 +195,18 @@ export function AvailabilityChart({ refreshKey }: { refreshKey?: number }) {
       setChartData({ 
         ejigboData: Array(daysInMonth).fill(0), 
         isoloData: Array(daysInMonth).fill(0), 
-        generatorsData: Array(daysInMonth).fill(0) 
+        gen1Data: Array(daysInMonth).fill(0),
+        gen2Data: Array(daysInMonth).fill(0),
+        gen3Data: Array(daysInMonth).fill(0),
+        gen4Data: Array(daysInMonth).fill(0),
+        gen5Data: Array(daysInMonth).fill(0),
+        gen6Data: Array(daysInMonth).fill(0),
+        gen7Data: Array(daysInMonth).fill(0),
+        gen8Data: Array(daysInMonth).fill(0),
+        gen9Data: Array(daysInMonth).fill(0),
+        gen10Data: Array(daysInMonth).fill(0),
+        gen11Data: Array(daysInMonth).fill(0),
+        gen12Data: Array(daysInMonth).fill(0)
       });
     } finally {
       setLoading(false);
@@ -148,7 +231,7 @@ export function AvailabilityChart({ refreshKey }: { refreshKey?: number }) {
     }
   };
 
-  const { ejigboData, isoloData, generatorsData } = chartData;
+  const { ejigboData, isoloData, gen1Data, gen2Data, gen3Data, gen4Data, gen5Data, gen6Data, gen7Data, gen8Data, gen9Data, gen10Data, gen11Data, gen12Data } = chartData;
 
   const chartOptions: ApexCharts.ApexOptions = {
     chart: {
@@ -227,21 +310,80 @@ export function AvailabilityChart({ refreshKey }: { refreshKey?: number }) {
         size: 6,
       },
     },
-    colors: ["#3B82F6", "#10B981", "#F59E0B"],
+    colors: [
+      "#3B82F6", // Ejigbo - Blue
+      "#10B981", // Isolo - Green
+      "#F59E0B", // Gen 1 - Amber
+      "#EF4444", // Gen 2 - Red
+      "#8B5CF6", // Gen 3 - Purple
+      "#EC4899", // Gen 4 - Pink
+      "#14B8A6", // Gen 5 - Teal
+      "#F97316", // Gen 6 - Orange
+      "#06B6D4", // Gen 7 - Cyan
+      "#84CC16", // Gen 8 - Lime
+      "#A855F7", // Gen 9 - Purple 500
+      "#F43F5E", // Gen 10 - Rose
+      "#0EA5E9", // Gen 11 - Sky
+      "#22D3EE", // Gen 12 - Cyan 400
+    ],
   };
 
   const series = [
     {
-      name: "Ejigbo (Availability)",
+      name: "Ejigbo",
       data: ejigboData,
     },
     {
-      name: "Isolo (Availability)",
+      name: "Isolo",
       data: isoloData,
     },
     {
-      name: "Generators (Availability)",
-      data: generatorsData,
+      name: "Gen 1",
+      data: gen1Data,
+    },
+    {
+      name: "Gen 2",
+      data: gen2Data,
+    },
+    {
+      name: "Gen 3",
+      data: gen3Data,
+    },
+    {
+      name: "Gen 4",
+      data: gen4Data,
+    },
+    {
+      name: "Gen 5",
+      data: gen5Data,
+    },
+    {
+      name: "Gen 6",
+      data: gen6Data,
+    },
+    {
+      name: "Gen 7",
+      data: gen7Data,
+    },
+    {
+      name: "Gen 8",
+      data: gen8Data,
+    },
+    {
+      name: "Gen 9",
+      data: gen9Data,
+    },
+    {
+      name: "Gen 10",
+      data: gen10Data,
+    },
+    {
+      name: "Gen 11",
+      data: gen11Data,
+    },
+    {
+      name: "Gen 12",
+      data: gen12Data,
     },
   ];
 
