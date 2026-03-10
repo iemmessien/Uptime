@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
+import { unstable_cache } from 'next/cache'
 
 const prisma = new PrismaClient()
 
@@ -107,10 +108,16 @@ export async function GET(request: NextRequest) {
       console.log('📋 Sample transformed uptime:', transformedUptimes[0]);
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       uptimes: transformedUptimes,
     })
+
+    // Add cache headers for browser caching
+    // Cache for 5 minutes, revalidate in background
+    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+
+    return response
   } catch (error) {
     console.error('Error fetching uptime data:', error)
     return NextResponse.json(

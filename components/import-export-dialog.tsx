@@ -13,10 +13,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 
 interface ImportExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
 const MONTHS = [
@@ -36,13 +38,15 @@ const MONTHS = [
 
 const YEARS = Array.from({ length: 31 }, (_, i) => 2020 + i);
 
-export function ImportExportDialog({ open, onOpenChange }: ImportExportDialogProps) {
+export function ImportExportDialog({ open, onOpenChange, onSuccess }: ImportExportDialogProps) {
   const currentDate = new Date();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [startMonth, setStartMonth] = useState(currentDate.getMonth());
   const [startYear, setStartYear] = useState(currentDate.getFullYear());
   const [endMonth, setEndMonth] = useState(currentDate.getMonth());
   const [endYear, setEndYear] = useState(currentDate.getFullYear());
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -50,19 +54,121 @@ export function ImportExportDialog({ open, onOpenChange }: ImportExportDialogPro
     }
   };
 
-  const handleImport = () => {
-    // Import functionality will be implemented later
-    console.log("Import file:", selectedFile);
+  const handleImport = async () => {
+    if (!selectedFile) {
+      toast.error("Please select a file to import");
+      return;
+    }
+
+    setIsImporting(true);
+    try {
+      console.log('Starting import with file:', selectedFile.name);
+
+      // Create FormData to send the file
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      console.log('Uploading file to /uptime/api/uptime/import');
+
+      // Upload the file to the import API
+      const response = await fetch('/uptime/api/uptime/import', {
+        method: 'POST',
+        body: formData,
+      });
+
+      console.log('Response status:', response.status);
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        console.error('Import failed:', result);
+        toast.error(result.error || 'Failed to import uptimes');
+        setIsImporting(false);
+        return;
+      }
+
+      console.log('Import successful:', result);
+      toast.success(result.message || 'Uptimes imported successfully');
+      
+      // Call onSuccess callback if provided
+      if (onSuccess) {
+        onSuccess();
+      }
+      
+      // Clear the selected file
+      setSelectedFile(null);
+      
+      // Reset file input
+      const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+      if (fileInput) {
+        fileInput.value = '';
+      }
+    } catch (error) {
+      console.error('Error importing data:', error);
+      toast.error('An error occurred while importing uptimes');
+    } finally {
+      setIsImporting(false);
+    }
   };
 
-  const handleExport = () => {
-    // Export functionality will be implemented later
-    console.log("Export range:", {
-      startMonth,
-      startYear,
-      endMonth,
-      endYear,
-    });
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      console.log('Starting export with params:', { startMonth, startYear, endMonth, endYear });
+      
+      // Build the export URL with query parameters
+      const url = `/uptime/api/uptime/export?startMonth=${startMonth}&startYear=${startYear}&endMonth=${endMonth}&endYear=${endYear}`;
+      
+      console.log('Fetching from URL:', url);
+      
+      // Fetch the CSV file
+      const response = await fetch(url);
+      
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Failed to export data:", errorText);
+        toast.error("Failed to export uptimes");
+        setIsExporting(false);
+        return;
+      }
+
+      // Get the blob from the response
+      const blob = await response.blob();
+      
+      console.log('Blob size:', blob.size);
+      
+      // Extract filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = 'uptime-export.csv';
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      console.log('Downloading file:', filename);
+
+      // Create a download link and trigger the download
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+
+      console.log("Export successful:", filename);
+      toast.success("Uptimes exported successfully");
+    } catch (error) {
+      console.error("Error exporting data:", error);
+      toast.error("An error occurred while exporting uptimes");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -99,20 +205,13 @@ export function ImportExportDialog({ open, onOpenChange }: ImportExportDialogPro
               )}
             </div>
 
-            <div className="pt-4 flex gap-2">
-              <Button
-                onClick={() => onOpenChange(false)}
-                variant="outline"
-                className="flex-1"
-              >
-                Cancel
-              </Button>
+            <div className="pt-4">
               <Button
                 onClick={handleImport}
-                disabled={!selectedFile}
-                className="flex-1 bg-orange-500 hover:bg-orange-600"
+                disabled={!selectedFile || isImporting}
+                className="w-full bg-orange-500 hover:bg-orange-600"
               >
-                Import
+                {isImporting ? "Importing..." : "Import"}
               </Button>
             </div>
           </TabsContent>
@@ -191,19 +290,13 @@ export function ImportExportDialog({ open, onOpenChange }: ImportExportDialogPro
               </div>
             </div>
 
-            <div className="pt-4 flex gap-2">
-              <Button
-                onClick={() => onOpenChange(false)}
-                variant="outline"
-                className="flex-1"
-              >
-                Cancel
-              </Button>
+            <div className="pt-4">
               <Button
                 onClick={handleExport}
-                className="flex-1 bg-orange-500 hover:bg-orange-600"
+                disabled={isExporting}
+                className="w-full bg-orange-500 hover:bg-orange-600"
               >
-                Export
+                {isExporting ? "Exporting..." : "Export"}
               </Button>
             </div>
           </TabsContent>

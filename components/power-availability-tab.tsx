@@ -385,7 +385,7 @@ export function PowerAvailabilityTab({ refreshKey, onRefresh }: { refreshKey?: n
           onDoubleClick={() => handleRowDoubleClick(interval)}
           title="Double-click to delete this uptime"
         >
-          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center"></td>
+          <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">-</td>
           <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
             {startEndTime}
           </td>

@@ -57,7 +57,7 @@ export function OverviewContent() {
   // Normal mode - show all tabs
   return (
     <div className="container mx-auto p-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Uptime Overview</h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-6">Power Uptime</h1>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <div className="flex items-center justify-between mb-6">

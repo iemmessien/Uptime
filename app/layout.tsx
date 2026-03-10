@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ViewModeProvider } from "@/lib/view-mode-context";
+import { QueryProvider } from "@/lib/query-client";
 import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -25,10 +26,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <ViewModeProvider>
-          {children}
-          <Toaster position="bottom-right" />
-        </ViewModeProvider>
+        <QueryProvider>
+          <ViewModeProvider>
+            {children}
+            <Toaster position="bottom-right" />
+          </ViewModeProvider>
+        </QueryProvider>
       </body>
     </html>
   );
