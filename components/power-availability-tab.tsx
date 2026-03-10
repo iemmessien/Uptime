@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useUptimeData } from "@/lib/use-uptime-data";
 import {
   Select,
   SelectContent,
@@ -40,7 +41,7 @@ const MONTHS = [
 const YEARS = Array.from({ length: 31 }, (_, i) => 2020 + i);
 
 interface UptimeRecord {
-  id: number;
+  id: string;
   date: string;
   powerSupply: string;
   startTime: string;
