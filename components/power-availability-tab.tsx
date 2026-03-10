@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 
 const MONTHS = [
@@ -107,6 +107,8 @@ export function PowerAvailabilityTab({ refreshKey, onRefresh }: { refreshKey?: n
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [intervalToDelete, setIntervalToDelete] = useState<TimeInterval | null>(null);
+  const [sortColumn, setSortColumn] = useState<'day' | 'uptime' | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const tableRef = useRef<HTMLTableElement>(null);
   const topScrollRef = useRef<HTMLDivElement>(null);
 
@@ -280,6 +282,40 @@ export function PowerAvailabilityTab({ refreshKey, onRefresh }: { refreshKey?: n
       console.error("❌ Error fetching uptime data:", error);
     }
   }, [error]);
+
+  // Sorting handler
+  const handleSort = (column: 'day' | 'uptime') => {
+    if (sortColumn === column) {
+      // Toggle direction if same column
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New column, default to ascending
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Create sorted days array
+  const sortedDays = useMemo(() => {
+    const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+    
+    if (!sortColumn) {
+      return days; // No sorting, return default order
+    }
+
+    return days.sort((a, b) => {
+      if (sortColumn === 'day') {
+        return sortDirection === 'asc' ? a - b : b - a;
+      } else if (sortColumn === 'uptime') {
+        const aData = dayDataMap.get(a);
+        const bData = dayDataMap.get(b);
+        const aCount = aData ? aData.intervals.length : 0;
+        const bCount = bData ? bData.intervals.length : 0;
+        return sortDirection === 'asc' ? aCount - bCount : bCount - aCount;
+      }
+      return 0;
+    });
+  }, [daysInMonth, sortColumn, sortDirection, dayDataMap]);
 
   const toggleRow = (day: number) => {
     const dayData = dayDataMap.get(day);
@@ -512,14 +548,34 @@ export function PowerAvailabilityTab({ refreshKey, onRefresh }: { refreshKey?: n
             <table ref={tableRef} className="border-collapse border border-gray-300 min-w-full">
             <thead>
               <tr className="bg-gray-100">
-                <th className="border border-gray-300 px-4 py-2 text-center text-sm font-semibold text-gray-900 whitespace-nowrap">
-                  Day
+                <th 
+                  className="border border-gray-300 px-4 py-2 text-center text-sm font-semibold text-gray-900 whitespace-nowrap cursor-pointer hover:bg-gray-200"
+                  onClick={() => handleSort('day')}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    Day
+                    {sortColumn === 'day' ? (
+                      sortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
+                    ) : (
+                      <ArrowUpDown className="h-4 w-4 opacity-50" />
+                    )}
+                  </div>
                 </th>
                 <th className="border border-gray-300 px-4 py-2 text-center text-sm font-semibold text-gray-900 whitespace-nowrap">
                   Start - End
                 </th>
-                <th className="border border-gray-300 px-4 py-2 text-center text-sm font-semibold text-gray-900 whitespace-nowrap">
-                  Uptime
+                <th 
+                  className="border border-gray-300 px-4 py-2 text-center text-sm font-semibold text-gray-900 whitespace-nowrap cursor-pointer hover:bg-gray-200"
+                  onClick={() => handleSort('uptime')}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    Uptime
+                    {sortColumn === 'uptime' ? (
+                      sortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
+                    ) : (
+                      <ArrowUpDown className="h-4 w-4 opacity-50" />
+                    )}
+                  </div>
                 </th>
                 <th className="border border-gray-300 px-4 py-2 text-center text-sm font-semibold text-gray-900 whitespace-nowrap">
                   Ejigbo<sub>av</sub>
@@ -548,7 +604,7 @@ export function PowerAvailabilityTab({ refreshKey, onRefresh }: { refreshKey?: n
               </tr>
             </thead>
             <tbody>
-              {Array.from({ length: daysInMonth }, (_, i) => i + 1).flatMap((day) => {
+              {sortedDays.flatMap((day) => {
                 const dayData = dayDataMap.get(day);
                 const isExpanded = expandedRows.has(day);
                 const hasIntervals = dayData && dayData.intervals.length > 0;
