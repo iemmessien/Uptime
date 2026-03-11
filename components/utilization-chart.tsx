@@ -44,33 +44,11 @@ export function UtilizationChart({ refreshKey }: { refreshKey?: number }) {
   const [chartData, setChartData] = useState<{ 
     ejigboData: number[], 
     isoloData: number[], 
-    gen1Data: number[], 
-    gen2Data: number[], 
-    gen3Data: number[], 
-    gen4Data: number[], 
-    gen5Data: number[], 
-    gen6Data: number[], 
-    gen7Data: number[], 
-    gen8Data: number[], 
-    gen9Data: number[], 
-    gen10Data: number[], 
-    gen11Data: number[], 
-    gen12Data: number[] 
+    generatorsData: number[]
   }>({ 
     ejigboData: [], 
     isoloData: [], 
-    gen1Data: [], 
-    gen2Data: [], 
-    gen3Data: [], 
-    gen4Data: [], 
-    gen5Data: [], 
-    gen6Data: [], 
-    gen7Data: [], 
-    gen8Data: [], 
-    gen9Data: [], 
-    gen10Data: [], 
-    gen11Data: [], 
-    gen12Data: [] 
+    generatorsData: []
   });
   const [loading, setLoading] = useState(true);
 
@@ -105,18 +83,7 @@ export function UtilizationChart({ refreshKey }: { refreshKey?: number }) {
         // Initialize arrays with zeros for all days
         const ejigboData = Array(daysInMonth).fill(0);
         const isoloData = Array(daysInMonth).fill(0);
-        const gen1Data = Array(daysInMonth).fill(0);
-        const gen2Data = Array(daysInMonth).fill(0);
-        const gen3Data = Array(daysInMonth).fill(0);
-        const gen4Data = Array(daysInMonth).fill(0);
-        const gen5Data = Array(daysInMonth).fill(0);
-        const gen6Data = Array(daysInMonth).fill(0);
-        const gen7Data = Array(daysInMonth).fill(0);
-        const gen8Data = Array(daysInMonth).fill(0);
-        const gen9Data = Array(daysInMonth).fill(0);
-        const gen10Data = Array(daysInMonth).fill(0);
-        const gen11Data = Array(daysInMonth).fill(0);
-        const gen12Data = Array(daysInMonth).fill(0);
+        const generatorsData = Array(daysInMonth).fill(0);
 
         // Group uptimes by event (date + startTime + testRun)
         const eventMap = new Map<string, any[]>();
@@ -152,37 +119,22 @@ export function UtilizationChart({ refreshKey }: { refreshKey?: number }) {
             } else if (hasEjigbo) {
               // If Ejigbo is on, it gets 100% utilization
               ejigboData[day] += runTimeHours;
-              // Others get 0
             } else if (hasIsolo && generatorCount === 2) {
               // Isolo + 2 generators: Isolo gets 50%, Generators get 50%
               isoloData[day] += runTimeHours * 0.5;
-              // Distribute the 50% equally among the generators in this event
-              const utilizationPerGen = (runTimeHours * 0.5) / generatorCount;
-              generators.forEach((gen) => {
-                switch (gen.powerSupply) {
-                  case 'Generator 1': gen1Data[day] += utilizationPerGen; break;
-                  case 'Generator 2': gen2Data[day] += utilizationPerGen; break;
-                  case 'Generator 3': gen3Data[day] += utilizationPerGen; break;
-                  case 'Generator 4': gen4Data[day] += utilizationPerGen; break;
-                  case 'Generator 5': gen5Data[day] += utilizationPerGen; break;
-                  case 'Generator 6': gen6Data[day] += utilizationPerGen; break;
-                  case 'Generator 7': gen7Data[day] += utilizationPerGen; break;
-                  case 'Generator 8': gen8Data[day] += utilizationPerGen; break;
-                  case 'Generator 9': gen9Data[day] += utilizationPerGen; break;
-                  case 'Generator 10': gen10Data[day] += utilizationPerGen; break;
-                  case 'Generator 11': gen11Data[day] += utilizationPerGen; break;
-                  case 'Generator 12': gen12Data[day] += utilizationPerGen; break;
-                }
-              });
+              generatorsData[day] += runTimeHours * 0.5;
             } else if (hasIsolo && generatorCount === 0) {
               // Isolo alone: Isolo gets 100%
               isoloData[day] += runTimeHours;
+            } else if (!hasIsolo && !hasEjigbo && generatorCount > 0) {
+              // Generators alone: Generators get 100%
+              generatorsData[day] += runTimeHours;
             }
             // For other cases, utilization remains 0
           }
         });
 
-        setChartData({ ejigboData, isoloData, gen1Data, gen2Data, gen3Data, gen4Data, gen5Data, gen6Data, gen7Data, gen8Data, gen9Data, gen10Data, gen11Data, gen12Data });
+        setChartData({ ejigboData, isoloData, generatorsData });
       }
     } catch (error) {
       console.error('Error fetching utilization data:', error);
@@ -190,18 +142,7 @@ export function UtilizationChart({ refreshKey }: { refreshKey?: number }) {
       setChartData({ 
         ejigboData: Array(daysInMonth).fill(0), 
         isoloData: Array(daysInMonth).fill(0), 
-        gen1Data: Array(daysInMonth).fill(0),
-        gen2Data: Array(daysInMonth).fill(0),
-        gen3Data: Array(daysInMonth).fill(0),
-        gen4Data: Array(daysInMonth).fill(0),
-        gen5Data: Array(daysInMonth).fill(0),
-        gen6Data: Array(daysInMonth).fill(0),
-        gen7Data: Array(daysInMonth).fill(0),
-        gen8Data: Array(daysInMonth).fill(0),
-        gen9Data: Array(daysInMonth).fill(0),
-        gen10Data: Array(daysInMonth).fill(0),
-        gen11Data: Array(daysInMonth).fill(0),
-        gen12Data: Array(daysInMonth).fill(0)
+        generatorsData: Array(daysInMonth).fill(0)
       });
     } finally {
       setLoading(false);
@@ -226,7 +167,7 @@ export function UtilizationChart({ refreshKey }: { refreshKey?: number }) {
     }
   };
 
-  const { ejigboData, isoloData, gen1Data, gen2Data, gen3Data, gen4Data, gen5Data, gen6Data, gen7Data, gen8Data, gen9Data, gen10Data, gen11Data, gen12Data } = chartData;
+  const { ejigboData, isoloData, generatorsData } = chartData;
 
   const chartOptions: ApexCharts.ApexOptions = {
     chart: {
@@ -308,18 +249,7 @@ export function UtilizationChart({ refreshKey }: { refreshKey?: number }) {
     colors: [
       "#3B82F6", // Ejigbo - Blue
       "#10B981", // Isolo - Green
-      "#F59E0B", // Gen 1 - Amber
-      "#EF4444", // Gen 2 - Red
-      "#8B5CF6", // Gen 3 - Purple
-      "#EC4899", // Gen 4 - Pink
-      "#14B8A6", // Gen 5 - Teal
-      "#F97316", // Gen 6 - Orange
-      "#06B6D4", // Gen 7 - Cyan
-      "#84CC16", // Gen 8 - Lime
-      "#A855F7", // Gen 9 - Purple 500
-      "#F43F5E", // Gen 10 - Rose
-      "#0EA5E9", // Gen 11 - Sky
-      "#22D3EE", // Gen 12 - Cyan 400
+      "#F59E0B", // Generators - Amber
     ],
   };
 
@@ -333,52 +263,8 @@ export function UtilizationChart({ refreshKey }: { refreshKey?: number }) {
       data: isoloData,
     },
     {
-      name: "Gen 1",
-      data: gen1Data,
-    },
-    {
-      name: "Gen 2",
-      data: gen2Data,
-    },
-    {
-      name: "Gen 3",
-      data: gen3Data,
-    },
-    {
-      name: "Gen 4",
-      data: gen4Data,
-    },
-    {
-      name: "Gen 5",
-      data: gen5Data,
-    },
-    {
-      name: "Gen 6",
-      data: gen6Data,
-    },
-    {
-      name: "Gen 7",
-      data: gen7Data,
-    },
-    {
-      name: "Gen 8",
-      data: gen8Data,
-    },
-    {
-      name: "Gen 9",
-      data: gen9Data,
-    },
-    {
-      name: "Gen 10",
-      data: gen10Data,
-    },
-    {
-      name: "Gen 11",
-      data: gen11Data,
-    },
-    {
-      name: "Gen 12",
-      data: gen12Data,
+      name: "Generators(uz)",
+      data: generatorsData,
     },
   ];
 
