@@ -48,9 +48,9 @@ export default async function HomePage({
           </div>
 
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-sm font-medium text-gray-900 mb-2">System Status</h2>
+            <h2 className="text-sm font-medium text-gray-900 mb-2">Generators Status</h2>
             <p className="text-3xl font-bold text-green-600">Operational</p>
-            <p className="text-sm text-gray-900 mt-2">All systems running</p>
+            <p className="text-sm text-gray-900 mt-2">All generators running</p>
           </div>
         </div>
 

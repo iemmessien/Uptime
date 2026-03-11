@@ -62,13 +62,13 @@ export function Topbar({ username, onToggleSidebar }: TopbarProps) {
   };
 
   return (
-    <div className="h-16 bg-white border-b border-gray-200 flex items-center px-4 gap-4">
+    <div className="h-14 bg-orange-500 border-b border-orange-600 flex items-center px-4 gap-4">
       {/* Menu toggle button */}
       <Button
         variant="ghost"
         size="icon"
         onClick={onToggleSidebar}
-        className="lg:hidden"
+        className="lg:hidden text-white hover:bg-orange-600"
       >
         <Menu className="h-5 w-5" />
       </Button>
@@ -85,7 +85,7 @@ export function Topbar({ username, onToggleSidebar }: TopbarProps) {
           height={40}
           className="h-10 w-auto"
         />
-        <span className="font-semibold text-gray-900 hidden sm:inline">
+        <span className="font-semibold text-white hidden sm:inline">
           Uptime Monitor
         </span>
       </button>
@@ -98,7 +98,7 @@ export function Topbar({ username, onToggleSidebar }: TopbarProps) {
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            className="min-w-[150px] justify-between bg-orange-50 border-orange-200 hover:bg-orange-100"
+            className="min-w-[150px] justify-between bg-white border-orange-400 hover:bg-orange-50 text-gray-900"
           >
             <span>{currentLabel}</span>
             <ChevronDown className="ml-2 h-4 w-4" />
@@ -124,9 +124,9 @@ export function Topbar({ username, onToggleSidebar }: TopbarProps) {
       {/* User menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-            <Avatar className="h-10 w-10 bg-orange-500">
-              <AvatarFallback className="bg-orange-500 text-white">
+          <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-orange-600">
+            <Avatar className="h-10 w-10 bg-white">
+              <AvatarFallback className="bg-white text-orange-500">
                 {username.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
