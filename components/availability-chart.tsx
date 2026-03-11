@@ -85,10 +85,14 @@ export function AvailabilityChart({ refreshKey }: { refreshKey?: number }) {
         const isoloData = Array(daysInMonth).fill(0);
         const generatorsData = Array(daysInMonth).fill(0);
 
-        // Group uptimes by event (date + startTime + testRun)
+        // Group uptimes by event (date + startTime), excluding test runs
         const eventMap = new Map<string, any[]>();
         data.uptimes.forEach((uptime: any) => {
-          const eventKey = `${uptime.date}-${uptime.startTime}-${uptime.testRun}`;
+          // Skip test run uptimes
+          if (uptime.testRun) {
+            return;
+          }
+          const eventKey = `${uptime.date}-${uptime.startTime}`;
           if (!eventMap.has(eventKey)) {
             eventMap.set(eventKey, []);
           }

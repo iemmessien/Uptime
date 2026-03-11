@@ -138,8 +138,8 @@ export function NormalOperationTab({ refreshKey, onRefresh }: { refreshKey?: num
     const timeIntervalMap = new Map<string, UptimeRecord[]>();
 
     uptimes.forEach((uptime) => {
-      // Only include COMPLETE uptimes (those with both startTime and endTime)
-      if (!uptime.endTime) {
+      // Only include COMPLETE non-test uptimes (those with both startTime and endTime, and testRun = false)
+      if (!uptime.endTime || uptime.testRun) {
         return;
       }
 

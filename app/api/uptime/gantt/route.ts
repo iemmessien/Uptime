@@ -109,11 +109,12 @@ async function fetchUptimesByViewMode(viewMode: string, selectedDate: Date) {
     viewMode
   })
 
-  // Fetch all complete uptimes that overlap with the date range
+  // Fetch all complete non-test uptimes that overlap with the date range
   // An uptime overlaps if: startTime < endDate AND endTime > startDate
   const uptimes = await prisma.uptime.findMany({
     where: {
       status: 'COMPLETE',
+      testRun: false,
       AND: [
         {
           startTime: {

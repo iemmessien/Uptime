@@ -149,9 +149,9 @@ export function PowerAvailabilityTab({ refreshKey, onRefresh }: { refreshKey?: n
     const timeIntervalMap = new Map<string, UptimeRecord[]>();
 
     uptimes.forEach((uptime) => {
-      // Only include COMPLETE uptimes (those with both startTime and endTime)
-      if (!uptime.endTime) {
-        return; // Skip this uptime if it doesn't have an end time
+      // Only include COMPLETE non-test uptimes (those with both startTime and endTime, and testRun = false)
+      if (!uptime.endTime || uptime.testRun) {
+        return; // Skip this uptime if it doesn't have an end time or is a test run
       }
 
       const uptimeDate = new Date(uptime.date);

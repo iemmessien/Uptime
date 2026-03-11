@@ -241,7 +241,7 @@ export function IncompleteUptimesTable({ refreshKey, onRefresh }: { refreshKey?:
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-xl font-semibold text-gray-900 mb-4">Incomplete Uptimes</h2>
       
-      <div className="overflow-x-auto overflow-y-visible">
+      <div className="overflow-x-auto">
         <table className="border-collapse border border-gray-300 min-w-full">
           <thead>
             <tr className="bg-gray-100">
