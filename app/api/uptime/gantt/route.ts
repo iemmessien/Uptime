@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 
+// Disable caching for this route - always fetch fresh data
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 const prisma = new PrismaClient()
 
 export async function GET(request: NextRequest) {
@@ -31,10 +35,19 @@ export async function GET(request: NextRequest) {
     
     console.log('[Gantt API] Formatted data count:', formattedData.length)
     
-    return NextResponse.json({
-      success: true,
-      uptimes: formattedData,
-    })
+    return NextResponse.json(
+      {
+        success: true,
+        uptimes: formattedData,
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      }
+    )
   } catch (error) {
     console.error('Error fetching uptime data:', error)
     return NextResponse.json(
@@ -50,46 +63,51 @@ async function fetchUptimesByViewMode(viewMode: string, selectedDate: Date) {
   let startDate: Date
   let endDate: Date
 
+  // Parse the ISO date string and extract date components to avoid timezone issues
+  const dateObj = new Date(selectedDate)
+  const year = dateObj.getUTCFullYear()
+  const month = dateObj.getUTCMonth()
+  const day = dateObj.getUTCDate()
+
   switch (viewMode) {
     case 'Day':
-      startDate = new Date(selectedDate)
-      startDate.setHours(0, 0, 0, 0)
-      endDate = new Date(selectedDate)
-      endDate.setHours(23, 59, 59, 999)
+      // Create dates in UTC to match database storage
+      startDate = new Date(Date.UTC(year, month, day, 0, 0, 0, 0))
+      endDate = new Date(Date.UTC(year, month, day, 23, 59, 59, 999))
       break
     
     case 'Week':
-      // Get 12 weeks: previous month, current month, next month
-      // Start from the Sunday of the week containing first day of previous month
-      const prevMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1, 1)
-      const dayOfWeek = prevMonth.getDay()
-      startDate = new Date(prevMonth)
-      startDate.setDate(prevMonth.getDate() - dayOfWeek)
-      startDate.setHours(0, 0, 0, 0)
-      // End 12 weeks later
-      endDate = new Date(startDate)
-      endDate.setDate(startDate.getDate() + (12 * 7) - 1)
-      endDate.setHours(23, 59, 59, 999)
+      // Get the start of the week (Sunday) in UTC
+      const weekStart = new Date(Date.UTC(year, month, day, 0, 0, 0, 0))
+      const dayOfWeek = weekStart.getUTCDay()
+      weekStart.setUTCDate(weekStart.getUTCDate() - dayOfWeek)
+      startDate = weekStart
+      // End 6 days later (Saturday)
+      endDate = new Date(weekStart)
+      endDate.setUTCDate(endDate.getUTCDate() + 6)
+      endDate.setUTCHours(23, 59, 59, 999)
       break
     
     case 'Month':
-      startDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1)
-      endDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0, 23, 59, 59, 999)
+      startDate = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0))
+      endDate = new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999))
       break
     
     case 'Year':
-      startDate = new Date(selectedDate.getFullYear(), 0, 1)
-      endDate = new Date(selectedDate.getFullYear(), 11, 31, 23, 59, 59, 999)
+      startDate = new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0))
+      endDate = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999))
       break
     
     default:
-      startDate = new Date(selectedDate)
-      startDate.setHours(0, 0, 0, 0)
-      endDate = new Date(selectedDate)
-      endDate.setHours(23, 59, 59, 999)
+      startDate = new Date(Date.UTC(year, month, day, 0, 0, 0, 0))
+      endDate = new Date(Date.UTC(year, month, day, 23, 59, 59, 999))
   }
 
-  console.log('[Gantt API] Date range:', { startDate, endDate, viewMode })
+  console.log('[Gantt API] Date range:', { 
+    startDate: startDate.toISOString(), 
+    endDate: endDate.toISOString(), 
+    viewMode
+  })
 
   // Fetch all complete uptimes that overlap with the date range
   // An uptime overlaps if: startTime < endDate AND endTime > startDate
@@ -130,14 +148,26 @@ async function fetchUptimesByViewMode(viewMode: string, selectedDate: Date) {
     },
   })
 
+  console.log('[Gantt API] 🔥 Raw uptimes from DB:', uptimes.length)
+  console.log('[Gantt API] 🔥 First uptime sample:', uptimes[0] ? {
+    id: uptimes[0].id,
+    startTime: uptimes[0].startTime,
+    endTime: uptimes[0].endTime,
+    status: uptimes[0].status,
+    ejigboId: uptimes[0].ejigboId,
+    isoloId: uptimes[0].isoloId,
+  } : 'No uptimes found')
+
   return uptimes
 }
 
 function formatUptimeData(uptimes: any[], viewMode: string, type: string) {
   const formatted: any[] = []
 
+  console.log('[Gantt API] 🔥 Formatting', uptimes.length, 'uptimes, type:', type)
+
   // Return individual uptime records as separate bars in the Gantt chart
-  uptimes.forEach((uptime) => {
+  uptimes.forEach((uptime, index) => {
     let powerSupply = ''
     
     if (uptime.ejigboId) powerSupply = 'Ejigbo'
@@ -155,7 +185,15 @@ function formatUptimeData(uptimes: any[], viewMode: string, type: string) {
     else if (uptime.gen11Id) powerSupply = 'Gen 11'
     else if (uptime.gen12Id) powerSupply = 'Gen 12'
 
-    if (!powerSupply) return
+    if (!powerSupply) {
+      console.log('[Gantt API] 🔥 WARNING: Uptime', index, 'has no power supply:', {
+        id: uptime.id,
+        ejigboId: uptime.ejigboId,
+        isoloId: uptime.isoloId,
+        gen1Id: uptime.gen1Id,
+      })
+      return
+    }
 
     const duration = type === 'utilization' ? uptime.utilization : uptime.runTime
 
@@ -167,6 +205,11 @@ function formatUptimeData(uptimes: any[], viewMode: string, type: string) {
       duration: duration,
     })
   })
+
+  console.log('[Gantt API] 🔥 Formatted', formatted.length, 'uptimes successfully')
+  if (formatted.length > 0) {
+    console.log('[Gantt API] 🔥 First formatted uptime:', formatted[0])
+  }
 
   return formatted
 }

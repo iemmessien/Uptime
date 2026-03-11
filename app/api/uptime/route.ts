@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 
+// Disable caching for this route - always fetch fresh data
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 const prisma = new PrismaClient()
 
 export async function GET(request: NextRequest) {
@@ -88,10 +92,19 @@ export async function GET(request: NextRequest) {
       console.log('📋 Sample transformed uptime:', transformedUptimes[0]);
     }
 
-    return NextResponse.json({
-      success: true,
-      uptimes: transformedUptimes,
-    })
+    return NextResponse.json(
+      {
+        success: true,
+        uptimes: transformedUptimes,
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      }
+    )
   } catch (error) {
     console.error('Error fetching uptime data:', error)
     return NextResponse.json(

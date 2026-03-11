@@ -41,7 +41,13 @@ export function SingleIncompleteUptimesTable({ powerSupply }: SingleIncompleteUp
   const fetchIncompleteUptimes = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/uptime/api/uptime/list?status=INCOMPLETE');
+      const response = await fetch('/uptime/api/uptime/list?status=INCOMPLETE', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       
       if (!response.ok) {
         console.error("Failed to fetch incomplete uptimes");

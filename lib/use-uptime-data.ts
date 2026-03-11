@@ -24,7 +24,13 @@ async function fetchUptimeData(
 ): Promise<UptimeRecord[]> {
   const url = `/uptime/api/uptime/list?startDate=${startDate}&endDate=${endDate}`;
 
-  const response = await fetch(url);
+  const response = await fetch(url, {
+    cache: 'no-store',
+    headers: {
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    }
+  });
 
   if (!response.ok) {
     throw new Error("Failed to fetch uptime data");
@@ -46,7 +52,7 @@ export function useUptimeData(
     queryKey: ["uptimes", selectedYear, selectedMonth, refreshKey],
     queryFn: () =>
       fetchUptimeData(startDate.toISOString(), endDate.toISOString()),
-    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
-    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    staleTime: 0, // Always refetch to ensure fresh data
+    gcTime: 60 * 1000, // Keep in cache for 1 minute for quick navigation
   });
 }

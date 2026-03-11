@@ -336,51 +336,65 @@ function generateCSV(dataByMonth: Array<{ month: number; year: number; dayMap: M
   const lines: string[] = [];
   const header = 'Date,Start Time,End Time,Ejigbo(av),Isolo(av),G1(av),G2(av),G3(av),G4(av),G5(av),G6(av),Generators(av),Ejigbo(uz),Isolo(uz),Generators(uz),Total(uz)';
 
+  console.log('🔥 generateCSV called with', dataByMonth.length, 'months');
+
   dataByMonth.forEach((monthData, monthIndex) => {
     const { month, year, dayMap } = monthData;
     
-    // Add month header
+    console.log(`🔥 Processing month ${monthIndex + 1}/${dataByMonth.length}: ${getMonthName(month)} ${year}, dayMap size:`, dayMap.size);
+    
+    // Add month and year header in two separate columns
+    const monthName = getMonthName(month);
+    lines.push(`${monthName},${year}`);
+    
+    // Add column headers
     lines.push(header);
 
-    // Sort days
-    const sortedDays = Array.from(dayMap.keys()).sort((a, b) => a - b);
-
-    sortedDays.forEach((day) => {
-      const dayData = dayMap.get(day)!;
-      
-      // Add parent row (day total)
+    // Get the number of days in this month
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    // Generate rows for every day in the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayData = dayMap.get(day);
       const dateStr = formatDate(day, month, year);
-      const generators_av = dayData.totals.g1_av + dayData.totals.g2_av + dayData.totals.g3_av +
-                           dayData.totals.g4_av + dayData.totals.g5_av + dayData.totals.g6_av +
-                           dayData.totals.g7_av + dayData.totals.g8_av + dayData.totals.g9_av +
-                           dayData.totals.g10_av + dayData.totals.g11_av + dayData.totals.g12_av;
       
-      lines.push(
-        `${dateStr},,,${formatDuration(dayData.totals.ejigbo_av)},${formatDuration(dayData.totals.isolo_av)},` +
-        `${formatDuration(dayData.totals.g1_av)},${formatDuration(dayData.totals.g2_av)},${formatDuration(dayData.totals.g3_av)},` +
-        `${formatDuration(dayData.totals.g4_av)},${formatDuration(dayData.totals.g5_av)},${formatDuration(dayData.totals.g6_av)},` +
-        `${formatDuration(generators_av)},${formatDuration(dayData.totals.ejigbo_uz)},${formatDuration(dayData.totals.isolo_uz)},` +
-        `${formatDuration(dayData.totals.generators_uz)},${formatDuration(dayData.totals.total_uz)}`
-      );
-
-      // Add child rows (intervals)
-      dayData.intervals.forEach((interval) => {
-        const startTime = formatTime(interval.startTime);
-        const endTime = formatTime(interval.endTime);
-        const generators_av_interval = interval.totals.g1_av + interval.totals.g2_av + interval.totals.g3_av +
-                                       interval.totals.g4_av + interval.totals.g5_av + interval.totals.g6_av +
-                                       interval.totals.g7_av + interval.totals.g8_av + interval.totals.g9_av +
-                                       interval.totals.g10_av + interval.totals.g11_av + interval.totals.g12_av;
+      if (dayData) {
+        // Add parent row (day total)
+        const generators_av = dayData.totals.g1_av + dayData.totals.g2_av + dayData.totals.g3_av +
+                             dayData.totals.g4_av + dayData.totals.g5_av + dayData.totals.g6_av +
+                             dayData.totals.g7_av + dayData.totals.g8_av + dayData.totals.g9_av +
+                             dayData.totals.g10_av + dayData.totals.g11_av + dayData.totals.g12_av;
         
         lines.push(
-          `-,${startTime},${endTime},${formatDuration(interval.totals.ejigbo_av)},${formatDuration(interval.totals.isolo_av)},` +
-          `${formatDuration(interval.totals.g1_av)},${formatDuration(interval.totals.g2_av)},${formatDuration(interval.totals.g3_av)},` +
-          `${formatDuration(interval.totals.g4_av)},${formatDuration(interval.totals.g5_av)},${formatDuration(interval.totals.g6_av)},` +
-          `${formatDuration(generators_av_interval)},${formatDuration(interval.totals.ejigbo_uz)},${formatDuration(interval.totals.isolo_uz)},` +
-          `${formatDuration(interval.totals.generators_uz)},${formatDuration(interval.totals.total_uz)}`
+          `${dateStr},,,${formatDuration(dayData.totals.ejigbo_av)},${formatDuration(dayData.totals.isolo_av)},` +
+          `${formatDuration(dayData.totals.g1_av)},${formatDuration(dayData.totals.g2_av)},${formatDuration(dayData.totals.g3_av)},` +
+          `${formatDuration(dayData.totals.g4_av)},${formatDuration(dayData.totals.g5_av)},${formatDuration(dayData.totals.g6_av)},` +
+          `${formatDuration(generators_av)},${formatDuration(dayData.totals.ejigbo_uz)},${formatDuration(dayData.totals.isolo_uz)},` +
+          `${formatDuration(dayData.totals.generators_uz)},${formatDuration(dayData.totals.total_uz)}`
         );
-      });
-    });
+
+        // Add child rows (intervals)
+        dayData.intervals.forEach((interval) => {
+          const startTime = formatTime(interval.startTime);
+          const endTime = formatTime(interval.endTime);
+          const generators_av_interval = interval.totals.g1_av + interval.totals.g2_av + interval.totals.g3_av +
+                                         interval.totals.g4_av + interval.totals.g5_av + interval.totals.g6_av +
+                                         interval.totals.g7_av + interval.totals.g8_av + interval.totals.g9_av +
+                                         interval.totals.g10_av + interval.totals.g11_av + interval.totals.g12_av;
+          
+          lines.push(
+            `-,${startTime},${endTime},${formatDuration(interval.totals.ejigbo_av)},${formatDuration(interval.totals.isolo_av)},` +
+            `${formatDuration(interval.totals.g1_av)},${formatDuration(interval.totals.g2_av)},${formatDuration(interval.totals.g3_av)},` +
+            `${formatDuration(interval.totals.g4_av)},${formatDuration(interval.totals.g5_av)},${formatDuration(interval.totals.g6_av)},` +
+            `${formatDuration(generators_av_interval)},${formatDuration(interval.totals.ejigbo_uz)},${formatDuration(interval.totals.isolo_uz)},` +
+            `${formatDuration(interval.totals.generators_uz)},${formatDuration(interval.totals.total_uz)}`
+          );
+        });
+      } else {
+        // No data for this day - add row with date only and empty values
+        lines.push(`${dateStr},,,,,,,,,,,,,,,`);
+      }
+    }
 
     // Add two blank lines between months (except after the last month)
     if (monthIndex < dataByMonth.length - 1) {
@@ -389,6 +403,7 @@ function generateCSV(dataByMonth: Array<{ month: number; year: number; dayMap: M
     }
   });
 
+  console.log('🔥 Generated', lines.length, 'lines in CSV');
   return lines.join('\n');
 }
 
@@ -410,8 +425,12 @@ export async function GET(request: NextRequest) {
     let currentYear = startYear;
     let currentMonth = startMonth;
 
+    console.log('🔥 Starting month collection loop...');
+
     while (currentYear < endYear || (currentYear === endYear && currentMonth <= endMonth)) {
+      console.log(`🔥 Fetching data for ${getMonthName(currentMonth)} ${currentYear}...`);
       const dayMap = await processMonthData(currentMonth, currentYear);
+      console.log(`🔥 Got dayMap with ${dayMap.size} days for ${getMonthName(currentMonth)} ${currentYear}`);
       dataByMonth.push({ month: currentMonth, year: currentYear, dayMap });
 
       // Move to next month
@@ -422,8 +441,13 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    console.log(`🔥 Collected data for ${dataByMonth.length} months`);
+
     // Generate CSV
     const csvContent = generateCSV(dataByMonth);
+
+    console.log('🔥 CSV content length:', csvContent.length);
+    console.log('🔥 CSV preview (first 500 chars):', csvContent.substring(0, 500));
 
     // Generate filename with current date (day-month-year format)
     const now = new Date();
