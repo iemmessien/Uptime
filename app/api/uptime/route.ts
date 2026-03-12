@@ -131,10 +131,11 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const { date, startTime, endTime, testRun, status, powers } = body
 
-    // Parse date and times
+    // Parse date and times in Africa/Lagos timezone (UTC+1)
     const selectedDate = new Date(date)
-    const startDateTime = new Date(`${date}T${startTime}`)
-    const endDateTime = endTime ? new Date(`${date}T${endTime}`) : null
+    // Create datetime strings with explicit timezone offset for West Africa Time (WAT)
+    const startDateTime = new Date(`${date}T${startTime}:00+01:00`)
+    const endDateTime = endTime ? new Date(`${date}T${endTime}:00+01:00`) : null
 
     // Calculate run time in minutes if end time is provided
     let runTime = 0
@@ -371,10 +372,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { date, startTime, endTime, testRun, status, powers } = body
 
-    // Parse date and times
+    // Parse date and times in Africa/Lagos timezone (UTC+1)
     const selectedDate = new Date(date)
-    const startDateTime = new Date(`${date}T${startTime}`)
-    const endDateTime = endTime ? new Date(`${date}T${endTime}`) : null
+    // Create datetime strings with explicit timezone offset for West Africa Time (WAT)
+    const startDateTime = new Date(`${date}T${startTime}:00+01:00`)
+    const endDateTime = endTime ? new Date(`${date}T${endTime}:00+01:00`) : null
 
     // Calculate run time in minutes if end time is provided (this is the Availability)
     let runTime = 0

@@ -32,8 +32,10 @@ interface IncompleteUptime {
 
 function formatTime(timeString: string): string {
   const date = new Date(timeString);
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
+  // Convert to Africa/Lagos timezone (UTC+1)
+  const lagosTime = new Date(date.toLocaleString('en-US', { timeZone: 'Africa/Lagos' }));
+  const hours = lagosTime.getHours().toString().padStart(2, '0');
+  const minutes = lagosTime.getMinutes().toString().padStart(2, '0');
   return `${hours}:${minutes}`;
 }
 

@@ -85,8 +85,10 @@ function formatDuration(minutes: number): string {
 
 function formatTime(timeString: string): string {
   const date = new Date(timeString);
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
+  // Convert to Africa/Lagos timezone (UTC+1)
+  const lagosTime = new Date(date.toLocaleString('en-US', { timeZone: 'Africa/Lagos' }));
+  const hours = lagosTime.getHours().toString().padStart(2, '0');
+  const minutes = lagosTime.getMinutes().toString().padStart(2, '0');
   return `${hours}:${minutes}`;
 }
 
@@ -201,12 +203,19 @@ export function PowerUtilizationTab({ refreshKey, onRefresh }: { refreshKey?: nu
           }
         });
 
-        // Calculate generators_uz based on rules (matching chart logic)
-        if (!isTestRun && !hasEjigbo && hasIsolo && generatorCount === 2) {
-          // Isolo + 2 generators: Generators get 50% of run time
+        // Calculate generators_uz and override isolo_uz based on rules (matching chart logic)
+        if (!isTestRun && !hasEjigbo && hasIsolo && generatorCount > 0) {
+          // Isolo + ANY generators: Both get 50% of run time
+          intervalTotals.isolo_uz = runTime * 0.5;
           intervalTotals.generators_uz = runTime * 0.5;
+        } else if (!isTestRun && !hasEjigbo && hasIsolo && generatorCount === 0) {
+          // Isolo alone: Isolo gets 100% of run time
+          intervalTotals.isolo_uz = runTime;
+        } else if (!isTestRun && !hasEjigbo && !hasIsolo && generatorCount > 0) {
+          // Generators only: Generators get 100% of run time
+          intervalTotals.generators_uz = runTime;
         }
-        // Otherwise generators_uz remains 0
+        // Otherwise generators_uz remains 0 (test run or when Ejigbo is present)
 
         // Create a time interval object
         const timeInterval: TimeInterval = {
@@ -552,6 +561,11 @@ export function PowerUtilizationTab({ refreshKey, onRefresh }: { refreshKey?: nu
                   startEndRange = `${startTime} - ${endTime}`;
                 }
 
+                // Check if any generators are present in any interval for this day
+                const hasAnyGeneratorInDay = dayData?.intervals.some(interval => 
+                  interval.powerSupplies.some(u => u.powerSupply.startsWith('Generator'))
+                ) ?? false;
+
                 const rows = [
                   <tr
                     key={day}
@@ -580,6 +594,8 @@ export function PowerUtilizationTab({ refreshKey, onRefresh }: { refreshKey?: nu
                     <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900 whitespace-nowrap text-center">
                       {dayData && dayData.totals.generators_uz > 0
                         ? formatDuration(dayData.totals.generators_uz)
+                        : hasAnyGeneratorInDay
+                        ? formatDuration(0)
                         : ""}
                     </td>
                   </tr>

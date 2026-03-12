@@ -72,12 +72,16 @@ export function AddUptimeDialog({ open, onOpenChange, uptimeId = null, existingD
       const formattedDate = dateObj.toISOString().split('T')[0]
       setDate(formattedDate)
       
-      // Extract time from ISO datetime string
-      const startTimeStr = new Date(existingData.startTime).toTimeString().substring(0, 5)
+      // Extract time from ISO datetime string in Africa/Lagos timezone
+      const startDate = new Date(existingData.startTime)
+      const startLagos = new Date(startDate.toLocaleString('en-US', { timeZone: 'Africa/Lagos' }))
+      const startTimeStr = `${startLagos.getHours().toString().padStart(2, '0')}:${startLagos.getMinutes().toString().padStart(2, '0')}`
       setStartTime(startTimeStr)
       
       if (existingData.endTime) {
-        const endTimeStr = new Date(existingData.endTime).toTimeString().substring(0, 5)
+        const endDate = new Date(existingData.endTime)
+        const endLagos = new Date(endDate.toLocaleString('en-US', { timeZone: 'Africa/Lagos' }))
+        const endTimeStr = `${endLagos.getHours().toString().padStart(2, '0')}:${endLagos.getMinutes().toString().padStart(2, '0')}`
         setEndTime(endTimeStr)
       } else {
         setEndTime("")
@@ -152,9 +156,9 @@ export function AddUptimeDialog({ open, onOpenChange, uptimeId = null, existingD
     const generatorKeys: (keyof PowerSelection)[] = ['gen1', 'gen2', 'gen3', 'gen4', 'gen5', 'gen6', 'gen7', 'gen8', 'gen9', 'gen10', 'gen11', 'gen12']
     const currentlySelectedGens = generatorKeys.filter(gen => powerSelection[gen])
 
-    // Prevent selecting more than 2 generators
-    if (checked && generatorKeys.includes(key) && currentlySelectedGens.length >= 2) {
-      toast.error("You can only select up to 2 generators at a time. Please deselect one generator first.")
+    // Prevent selecting more than 4 generators
+    if (checked && generatorKeys.includes(key) && currentlySelectedGens.length >= 4) {
+      toast.error("You can only select up to 4 generators at a time. Please deselect one generator first.")
       return
     }
 
@@ -348,7 +352,7 @@ export function AddUptimeDialog({ open, onOpenChange, uptimeId = null, existingD
                 {['gen1', 'gen2', 'gen3', 'gen4', 'gen5', 'gen6'].map((gen) => {
                   const generatorKeys: (keyof PowerSelection)[] = ['gen1', 'gen2', 'gen3', 'gen4', 'gen5', 'gen6', 'gen7', 'gen8', 'gen9', 'gen10', 'gen11', 'gen12']
                   const selectedGens = generatorKeys.filter(g => powerSelection[g])
-                  const isDisabled = selectedGens.length >= 2 && !powerSelection[gen as keyof PowerSelection]
+                  const isDisabled = selectedGens.length >= 4 && !powerSelection[gen as keyof PowerSelection]
                   
                   return (
                     <div key={gen} className="flex items-center space-x-2">
@@ -371,7 +375,7 @@ export function AddUptimeDialog({ open, onOpenChange, uptimeId = null, existingD
                 {['gen7', 'gen8', 'gen9', 'gen10', 'gen11', 'gen12'].map((gen) => {
                   const generatorKeys: (keyof PowerSelection)[] = ['gen1', 'gen2', 'gen3', 'gen4', 'gen5', 'gen6', 'gen7', 'gen8', 'gen9', 'gen10', 'gen11', 'gen12']
                   const selectedGens = generatorKeys.filter(g => powerSelection[g])
-                  const isDisabled = selectedGens.length >= 2 && !powerSelection[gen as keyof PowerSelection]
+                  const isDisabled = selectedGens.length >= 4 && !powerSelection[gen as keyof PowerSelection]
                   
                   return (
                     <div key={gen} className="flex items-center space-x-2">
@@ -402,6 +406,18 @@ export function AddUptimeDialog({ open, onOpenChange, uptimeId = null, existingD
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
+                onFocus={(e) => {
+                  if (!startTime) {
+                    // Get current hour in Africa/Lagos timezone
+                    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Lagos' }))
+                    let hour = now.getHours() % 12  // Convert to 12-hour format
+                    if (hour === 0) hour = 12  // Handle midnight case
+                    // Set to AM: if hour is 12, use 00:00, otherwise use the hour
+                    const amHour = hour === 12 ? 0 : hour
+                    const defaultTime = `${amHour.toString().padStart(2, '0')}:00`
+                    setStartTime(defaultTime)
+                  }
+                }}
                 className="w-40"
               />
             </div>
@@ -426,6 +442,18 @@ export function AddUptimeDialog({ open, onOpenChange, uptimeId = null, existingD
               type="time"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
+              onFocus={(e) => {
+                if (!endTime) {
+                  // Get current hour in Africa/Lagos timezone
+                  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Lagos' }))
+                  let hour = now.getHours() % 12  // Convert to 12-hour format
+                  if (hour === 0) hour = 12  // Handle midnight case
+                  // Set to PM: if hour is 12, use 12:59, otherwise add 12
+                  const pmHour = hour === 12 ? 12 : hour + 12
+                  const defaultTime = `${pmHour.toString().padStart(2, '0')}:59`
+                  setEndTime(defaultTime)
+                }
+              }}
               className={`w-40 ${timeError ? 'border-red-500' : ''}`}
             />
             {timeError && (
