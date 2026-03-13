@@ -91,9 +91,8 @@ export function SingleAvailabilityChart({
             const day = uptimeDate.getDate() - 1; // 0-indexed
 
             if (day >= 0 && day < daysInMonth) {
-              const availabilityMinutes = uptime.availability ?? 0; // Use availability field from DB
-              const availabilityHours = availabilityMinutes / 60; // Convert minutes to hours
-              availabilityByDay[day] += availabilityHours;
+              const durationHours = uptime.duration / 60; // Convert minutes to hours
+              availabilityByDay[day] += durationHours;
             }
           }
         });

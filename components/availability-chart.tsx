@@ -84,6 +84,9 @@ export function AvailabilityChart({ refreshKey }: { refreshKey?: number }) {
         const ejigboData = Array(daysInMonth).fill(0);
         const isoloData = Array(daysInMonth).fill(0);
         const generatorsData = Array(daysInMonth).fill(0);
+        
+        // Track each generator's total availability per day separately
+        const generatorsByDay: Map<number, Map<string, number>> = new Map();
 
         // Process each uptime individually (already segmented in database)
         data.uptimes.forEach((uptime: any) => {
@@ -105,9 +108,24 @@ export function AvailabilityChart({ refreshKey }: { refreshKey?: number }) {
             } else if (uptime.powerSupply === 'Isolo') {
               isoloData[day] += availabilityHours;
             } else if (uptime.powerSupply.startsWith('Generator')) {
-              generatorsData[day] = Math.max(generatorsData[day], availabilityHours);
+              // Sum availability for each specific generator
+              if (!generatorsByDay.has(day)) {
+                generatorsByDay.set(day, new Map());
+              }
+              const dayGenerators = generatorsByDay.get(day)!;
+              const currentTotal = dayGenerators.get(uptime.powerSupply) || 0;
+              dayGenerators.set(uptime.powerSupply, currentTotal + availabilityHours);
             }
           }
+        });
+        
+        // For each day, find the max availability across all generators
+        generatorsByDay.forEach((generators, day) => {
+          let maxGeneratorAvailability = 0;
+          generators.forEach((availability) => {
+            maxGeneratorAvailability = Math.max(maxGeneratorAvailability, availability);
+          });
+          generatorsData[day] = maxGeneratorAvailability;
         });
 
         setChartData({ ejigboData, isoloData, generatorsData });
