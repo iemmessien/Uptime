@@ -172,7 +172,7 @@ export function SinglePowerAvailabilityTable({ powerSupply }: SinglePowerAvailab
         const dayData = dayMap.get(day);
         if (dayData) {
           dayData.uptimes.push(uptime);
-          dayData.availability += uptime.duration;
+          dayData.availability += (uptime.availability ?? 0);
         }
       });
 

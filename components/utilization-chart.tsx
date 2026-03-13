@@ -119,8 +119,8 @@ export function UtilizationChart({ refreshKey }: { refreshKey?: number }) {
             if (hasEjigbo) {
               // If Ejigbo is on, it gets 100% utilization
               ejigboData[day] += runTimeHours;
-            } else if (hasIsolo && generatorCount === 2) {
-              // Isolo + 2 generators: Isolo gets 50%, Generators get 50%
+            } else if (hasIsolo && generatorCount > 0) {
+              // Isolo + ANY generators: Isolo gets 50%, Generators get 50%
               isoloData[day] += runTimeHours * 0.5;
               generatorsData[day] += runTimeHours * 0.5;
             } else if (hasIsolo && generatorCount === 0) {

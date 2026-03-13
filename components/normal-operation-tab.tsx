@@ -47,6 +47,7 @@ interface UptimeRecord {
   startTime: string;
   endTime: string | null;
   duration: number;
+  availability: number | null;
   utilization: number;
   testRun: boolean;
 }
@@ -208,32 +209,33 @@ export function NormalOperationTab({ refreshKey, onRefresh }: { refreshKey?: num
         const runTime = firstUptime.duration;
 
         intervalUptimes.forEach((uptime) => {
+          const availabilityValue = uptime.availability ?? 0; // Use availability field from DB
           switch (uptime.powerSupply) {
             case "Ejigbo":
-              intervalTotals.ejigbo_av += uptime.duration;
+              intervalTotals.ejigbo_av += availabilityValue;
               intervalTotals.ejigbo_uz += uptime.utilization;
               break;
             case "Isolo":
-              intervalTotals.isolo_av += uptime.duration;
+              intervalTotals.isolo_av += availabilityValue;
               intervalTotals.isolo_uz += uptime.utilization;
               break;
             case "Generator 1":
-              intervalTotals.g1_av += uptime.duration;
+              intervalTotals.g1_av = Math.max(intervalTotals.g1_av, availabilityValue);
               break;
             case "Generator 2":
-              intervalTotals.g2_av += uptime.duration;
+              intervalTotals.g2_av = Math.max(intervalTotals.g2_av, availabilityValue);
               break;
             case "Generator 3":
-              intervalTotals.g3_av += uptime.duration;
+              intervalTotals.g3_av = Math.max(intervalTotals.g3_av, availabilityValue);
               break;
             case "Generator 4":
-              intervalTotals.g4_av += uptime.duration;
+              intervalTotals.g4_av = Math.max(intervalTotals.g4_av, availabilityValue);
               break;
             case "Generator 5":
-              intervalTotals.g5_av += uptime.duration;
+              intervalTotals.g5_av = Math.max(intervalTotals.g5_av, availabilityValue);
               break;
             case "Generator 6":
-              intervalTotals.g6_av += uptime.duration;
+              intervalTotals.g6_av = Math.max(intervalTotals.g6_av, availabilityValue);
               break;
           }
         });
@@ -268,12 +270,12 @@ export function NormalOperationTab({ refreshKey, onRefresh }: { refreshKey?: num
         const dayData = dayMap.get(day)!;
         dayData.totals.ejigbo_av += intervalTotals.ejigbo_av;
         dayData.totals.isolo_av += intervalTotals.isolo_av;
-        dayData.totals.g1_av += intervalTotals.g1_av;
-        dayData.totals.g2_av += intervalTotals.g2_av;
-        dayData.totals.g3_av += intervalTotals.g3_av;
-        dayData.totals.g4_av += intervalTotals.g4_av;
-        dayData.totals.g5_av += intervalTotals.g5_av;
-        dayData.totals.g6_av += intervalTotals.g6_av;
+        dayData.totals.g1_av = Math.max(dayData.totals.g1_av, intervalTotals.g1_av);
+        dayData.totals.g2_av = Math.max(dayData.totals.g2_av, intervalTotals.g2_av);
+        dayData.totals.g3_av = Math.max(dayData.totals.g3_av, intervalTotals.g3_av);
+        dayData.totals.g4_av = Math.max(dayData.totals.g4_av, intervalTotals.g4_av);
+        dayData.totals.g5_av = Math.max(dayData.totals.g5_av, intervalTotals.g5_av);
+        dayData.totals.g6_av = Math.max(dayData.totals.g6_av, intervalTotals.g6_av);
         dayData.totals.ejigbo_uz += intervalTotals.ejigbo_uz;
         dayData.totals.isolo_uz += intervalTotals.isolo_uz;
         dayData.totals.generators_uz += intervalTotals.generators_uz;

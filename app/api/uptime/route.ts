@@ -49,19 +49,21 @@ function segmentOverlappingUptimes(uptimes: UptimeInput[]): TimeSegment[] {
     const segmentEnd = new Date(sortedBreakpoints[i + 1])
     
     // Determine which power supplies are ON during this segment
-    const activePowers: string[] = []
+    const activePowersSet = new Set<string>()
     let isTestRun = false
     
     completeUptimes.forEach(uptime => {
       if (uptime.endTime && 
           uptime.startTime.getTime() <= segmentStart.getTime() && 
           uptime.endTime.getTime() >= segmentEnd.getTime()) {
-        activePowers.push(uptime.power)
+        activePowersSet.add(uptime.power) // Use Set to avoid duplicates
         if (uptime.testRun) {
           isTestRun = true
         }
       }
     })
+    
+    const activePowers = Array.from(activePowersSet) // Convert Set to Array
     
     if (activePowers.length > 0) {
       segments.push({
@@ -151,6 +153,7 @@ export async function GET(request: NextRequest) {
         startTime: uptime.startTime,
         endTime: uptime.endTime,
         duration: uptime.runTime || 0,
+        availability: uptime.availability,
         utilization: uptime.utilization || 0,
         testRun: uptime.testRun || false,
       }
@@ -238,6 +241,7 @@ export async function PUT(request: NextRequest) {
           startTime: startDateTime,
           endTime: null,
           runTime: 0,
+          availability: null,
           utilization: 0,
           testRun,
           status,
@@ -457,11 +461,13 @@ export async function PUT(request: NextRequest) {
       
       for (const power of segment.powers) {
         const utilization = calculateSegmentUtilization(segment, power)
+        const availability = runTime // Availability equals the segment duration
 
         const uptimeData: any = {
           startTime: segment.startTime,
           endTime: segment.endTime,
           runTime,
+          availability,
           utilization,
           testRun: segment.testRun,
           status,
@@ -633,6 +639,7 @@ export async function POST(request: NextRequest) {
           startTime: startDateTime,
           endTime: null,
           runTime: 0,
+          availability: null,
           utilization: 0,
           testRun,
           status,
@@ -861,11 +868,13 @@ export async function POST(request: NextRequest) {
       
       for (const power of segment.powers) {
         const utilization = calculateSegmentUtilization(segment, power)
+        const availability = runTime // Availability equals the segment duration
 
         const uptimeData: any = {
           startTime: segment.startTime,
           endTime: segment.endTime,
           runTime,
+          availability,
           utilization,
           testRun: segment.testRun,
           status,

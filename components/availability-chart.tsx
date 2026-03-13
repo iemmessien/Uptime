@@ -85,43 +85,27 @@ export function AvailabilityChart({ refreshKey }: { refreshKey?: number }) {
         const isoloData = Array(daysInMonth).fill(0);
         const generatorsData = Array(daysInMonth).fill(0);
 
-        // Group uptimes by event (date + startTime), excluding test runs
-        const eventMap = new Map<string, any[]>();
+        // Process each uptime individually (already segmented in database)
         data.uptimes.forEach((uptime: any) => {
           // Skip test run uptimes
           if (uptime.testRun) {
             return;
           }
-          const eventKey = `${uptime.date}-${uptime.startTime}`;
-          if (!eventMap.has(eventKey)) {
-            eventMap.set(eventKey, []);
-          }
-          eventMap.get(eventKey)!.push(uptime);
-        });
 
-        // Process each event
-        eventMap.forEach((uptimes) => {
-          const firstUptime = uptimes[0];
-          const uptimeDate = new Date(firstUptime.date);
+          const uptimeDate = new Date(uptime.date);
           const day = uptimeDate.getDate() - 1; // 0-indexed
 
           if (day >= 0 && day < daysInMonth) {
-            const durationHours = firstUptime.duration / 60; // Convert minutes to hours
+            const availabilityMinutes = uptime.availability ?? 0;
+            const availabilityHours = availabilityMinutes / 60; // Convert minutes to hours
 
-            // Check which power supplies are in this event
-            const hasEjigbo = uptimes.some(u => u.powerSupply === 'Ejigbo');
-            const hasIsolo = uptimes.some(u => u.powerSupply === 'Isolo');
-            const hasGenerators = uptimes.some(u => u.powerSupply.startsWith('Generator'));
-
-            // Add the event duration once per power supply type
-            if (hasEjigbo) {
-              ejigboData[day] += durationHours;
-            }
-            if (hasIsolo) {
-              isoloData[day] += durationHours;
-            }
-            if (hasGenerators) {
-              generatorsData[day] += durationHours;
+            // Add availability to the corresponding power supply
+            if (uptime.powerSupply === 'Ejigbo') {
+              ejigboData[day] += availabilityHours;
+            } else if (uptime.powerSupply === 'Isolo') {
+              isoloData[day] += availabilityHours;
+            } else if (uptime.powerSupply.startsWith('Generator')) {
+              generatorsData[day] = Math.max(generatorsData[day], availabilityHours);
             }
           }
         });

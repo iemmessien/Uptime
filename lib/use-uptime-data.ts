@@ -9,6 +9,7 @@ interface UptimeRecord {
   startTime: string;
   endTime: string | null;
   duration: number;
+  availability: number | null;
   utilization: number;
   testRun: boolean;
 }

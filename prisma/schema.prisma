@@ -31,6 +31,7 @@ model Uptime {
   startTime   DateTime
   endTime     DateTime?
   runTime     Int          // Duration in minutes or seconds
+  availability Int?        // Availability in minutes for this power supply (null for incomplete uptimes)
   utilization Float        // Percentage
   testRun     Boolean      @default(false)
   status      UptimeStatus @default(INCOMPLETE)

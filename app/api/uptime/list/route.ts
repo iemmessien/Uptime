@@ -86,6 +86,7 @@ export async function GET(request: NextRequest) {
         startTime: uptime.startTime,
         endTime: uptime.endTime,
         duration: uptime.runTime || 0,
+        availability: uptime.availability,
         utilization: uptime.utilization || 0,
         testRun: uptime.testRun || false,
         // Include all power supply IDs for incomplete uptimes table
