@@ -35,6 +35,7 @@ interface UptimeRecord {
   endTime: string | null;
   duration: number;
   powerSupply: string;
+  availability: number | null;
   ejigboId?: number;
   isoloId?: number;
   gen1Id?: number;
