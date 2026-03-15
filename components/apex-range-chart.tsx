@@ -41,16 +41,35 @@ const POWER_SUPPLIES = [
    "Gen 12",
 ]
 
+// Africa/Lagos timezone offset (UTC+1)
+const LAGOS_OFFSET = 1 * 60 * 60 * 1000 // 1 hour in milliseconds
+
 export function UptimeRangeChart({ type }: UptimeRangeChartProps) {
    const [uptimeData, setUptimeData] = useState<UptimeData[]>([])
    const [loading, setLoading] = useState(true)
    const [viewMode, setViewMode] = useState<ViewMode>("Day")
    const [selectedDate, setSelectedDate] = useState<Date>(new Date())
    const [dateValue, setDateValue] = useState(new Date().toISOString().split('T')[0])
+   const [tempDateValue, setTempDateValue] = useState(new Date().toISOString().split('T')[0])
 
    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      setDateValue(e.target.value)
-      setSelectedDate(new Date(e.target.value))
+      setTempDateValue(e.target.value)
+   }
+
+   const handleDateBlur = () => {
+      // Only update the chart when user leaves the date input (after selecting a date)
+      if (tempDateValue && tempDateValue !== dateValue) {
+         setDateValue(tempDateValue)
+         setSelectedDate(new Date(tempDateValue))
+      }
+   }
+
+   const handleDateKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      // Update chart when user presses Enter
+      if (e.key === 'Enter' && tempDateValue && tempDateValue !== dateValue) {
+         setDateValue(tempDateValue)
+         setSelectedDate(new Date(tempDateValue))
+      }
    }
 
    useEffect(() => {
@@ -68,8 +87,10 @@ export function UptimeRangeChart({ type }: UptimeRangeChartProps) {
             newDate.setDate(newDate.getDate() - 7)
             break
       }
+      const newDateStr = newDate.toISOString().split('T')[0]
       setSelectedDate(newDate)
-      setDateValue(newDate.toISOString().split('T')[0])
+      setDateValue(newDateStr)
+      setTempDateValue(newDateStr)
    }
 
    const handleNext = () => {
@@ -82,14 +103,18 @@ export function UptimeRangeChart({ type }: UptimeRangeChartProps) {
             newDate.setDate(newDate.getDate() + 7)
             break
       }
+      const newDateStr = newDate.toISOString().split('T')[0]
       setSelectedDate(newDate)
-      setDateValue(newDate.toISOString().split('T')[0])
+      setDateValue(newDateStr)
+      setTempDateValue(newDateStr)
    }
 
    const handleToday = () => {
       const today = new Date()
+      const todayStr = today.toISOString().split('T')[0]
       setSelectedDate(today)
-      setDateValue(today.toISOString().split('T')[0])
+      setDateValue(todayStr)
+      setTempDateValue(todayStr)
    }
 
    const formatDateDisplay = () => {
@@ -165,12 +190,13 @@ export function UptimeRangeChart({ type }: UptimeRangeChartProps) {
       console.log('🔥 uptimeData length:', uptimeData.length)
       
       // Calculate time range boundaries for placeholder
+      // Placeholder should be within axis range (no offset needed)
       const year = selectedDate.getUTCFullYear()
       const month = selectedDate.getUTCMonth()
       const day = selectedDate.getUTCDate()
       const placeholderTime = Date.UTC(year, month, day, 0, 0, 0, 0)
       
-      // Create a series data structure: one entry per power supply with multiple data points
+      // Create a series data structure: one entry per power supply with multiple data pointss
       const seriesData: { [key: string]: { x: string; y: [number, number] }[] } = {}
 
       // Initialize with all power supplies to ensure 14 rows
@@ -179,6 +205,7 @@ export function UptimeRangeChart({ type }: UptimeRangeChartProps) {
       })
 
       // Group uptimes by power supply
+      // Convert UTC timestamps to Lagos time (UTC+1) so data displays at correct position on fixed axis
       uptimeData.forEach((uptime, index) => {
          console.log(`🔥 Processing uptime ${index}:`, uptime)
          
@@ -187,8 +214,10 @@ export function UptimeRangeChart({ type }: UptimeRangeChartProps) {
             seriesData[uptime.powerSupply] = []
          }
 
-         const start = new Date(uptime.startTime).getTime()
-         const end = new Date(uptime.endTime).getTime()
+         // Convert UTC timestamps to Lagos time by adding 1 hour
+         // Data stored as UTC but needs to display at Lagos time position on the fixed axis
+         const start = new Date(uptime.startTime).getTime() + LAGOS_OFFSET
+         const end = new Date(uptime.endTime).getTime() + LAGOS_OFFSET
 
          console.log(`🔥 Adding bar for ${uptime.powerSupply}: start=${new Date(start).toISOString()}, end=${new Date(end).toISOString()}, timestamps: ${start} - ${end}`)
 
@@ -220,7 +249,9 @@ export function UptimeRangeChart({ type }: UptimeRangeChartProps) {
    }
 
    const getChartOptions = () => {
-      // Calculate boundaries for Day and Week views using UTC to match database storage
+      // Calculate boundaries for Day and Week views
+      // Keep axis range in UTC (no offset) for fixed labels starting at 00:00
+      // Data timestamps are already adjusted by LAGOS_OFFSET to display correctly
       let rangeStart: number | undefined
       let rangeEnd: number | undefined
       
@@ -229,6 +260,7 @@ export function UptimeRangeChart({ type }: UptimeRangeChartProps) {
          const month = selectedDate.getUTCMonth()
          const day = selectedDate.getUTCDate()
          
+         // Use plain UTC boundaries - axis shows 00:00 to 23:59
          rangeStart = Date.UTC(year, month, day, 0, 0, 0, 0)
          rangeEnd = Date.UTC(year, month, day, 23, 59, 59, 999)
          
@@ -295,7 +327,7 @@ export function UptimeRangeChart({ type }: UptimeRangeChartProps) {
             min: rangeStart,
             max: rangeEnd,
             labels: {
-               datetimeUTC: true, // Use UTC to match database storage
+               datetimeUTC: true, // Use UTC to prevent browser timezone conversion
                format: undefined // Will be set based on view mode below
             }
          },
@@ -454,8 +486,10 @@ export function UptimeRangeChart({ type }: UptimeRangeChartProps) {
                <Input
                   id="gantt-date"
                   type="date"
-                  value={dateValue}
+                  value={tempDateValue}
                   onChange={handleDateChange}
+                  onBlur={handleDateBlur}
+                  onKeyDown={handleDateKeyDown}
                   className="w-40 bg-white"
                />
             </div>

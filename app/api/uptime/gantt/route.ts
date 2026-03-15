@@ -196,15 +196,29 @@ function formatUptimeData(uptimes: any[], viewMode: string, type: string) {
       return
     }
 
-    const duration = type === 'utilization' ? uptime.utilization : uptime.runTime
-
-    formatted.push({
-      id: uptime.id,
-      powerSupply,
-      startTime: new Date(uptime.startTime).toISOString(),
-      endTime: new Date(uptime.endTime).toISOString(),
-      duration: duration,
-    })
+    // For utilization chart: only show bars for power supplies with actual utilization > 0
+    // For availability chart: show all power supplies with runTime > 0
+    if (type === 'utilization') {
+      // Only add to chart if this power supply has utilization
+      if (uptime.utilization > 0) {
+        formatted.push({
+          id: uptime.id,
+          powerSupply,
+          startTime: new Date(uptime.startTime).toISOString(),
+          endTime: new Date(uptime.endTime).toISOString(),
+          duration: uptime.utilization,
+        })
+      }
+    } else {
+      // Availability: show all with runTime
+      formatted.push({
+        id: uptime.id,
+        powerSupply,
+        startTime: new Date(uptime.startTime).toISOString(),
+        endTime: new Date(uptime.endTime).toISOString(),
+        duration: uptime.runTime,
+      })
+    }
   })
 
   console.log('[Gantt API] 🔥 Formatted', formatted.length, 'uptimes successfully')

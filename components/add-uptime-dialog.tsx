@@ -44,7 +44,7 @@ export function AddUptimeDialog({ open, onOpenChange, uptimeId = null, existingD
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [startTime, setStartTime] = useState("")
   const [endTime, setEndTime] = useState("")
-  const [duration, setDuration] = useState("Unknown")
+  const [duration, setDuration] = useState("-")
   const [testRun, setTestRun] = useState("no")
   const [timeError, setTimeError] = useState("")
   const [powerSelection, setPowerSelection] = useState<PowerSelection>({
@@ -113,7 +113,7 @@ export function AddUptimeDialog({ open, onOpenChange, uptimeId = null, existingD
   // Calculate duration whenever start time or end time changes
   useEffect(() => {
     if (!startTime || !endTime) {
-      setDuration("Unknown")
+      setDuration("-")
       setTimeError("")
       return
     }
@@ -169,7 +169,7 @@ export function AddUptimeDialog({ open, onOpenChange, uptimeId = null, existingD
     setDate(new Date().toISOString().split('T')[0])
     setStartTime("")
     setEndTime("")
-    setDuration("Unknown")
+    setDuration("-")
     setTestRun("no")
     setTimeError("")
     setPowerSelection({

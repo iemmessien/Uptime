@@ -3,36 +3,89 @@ import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
-interface CSVRow {
-  date: string;
-  startTime: string;
-  endTime: string;
-  ejigbo_av: number;
-  isolo_av: number;
-  g1_av: number;
-  g2_av: number;
-  g3_av: number;
-  g4_av: number;
-  g5_av: number;
-  g6_av: number;
-  generators_av: number;
-  ejigbo_uz: number;
-  isolo_uz: number;
-  generators_uz: number;
+// Helper type definitions
+interface UptimeInput {
+  power: string
+  startTime: Date
+  endTime: Date | null
+  testRun: boolean
 }
 
-function parseDuration(durationStr: string): number {
-  // Parse HH:MM format to minutes
-  const parts = durationStr.split(':');
-  if (parts.length !== 2) return 0;
-  const hours = parseInt(parts[0]) || 0;
-  const minutes = parseInt(parts[1]) || 0;
-  return hours * 60 + minutes;
+interface TimeSegment {
+  startTime: Date
+  endTime: Date
+  powers: string[]
+  testRun: boolean
+}
+
+interface ParsedRow {
+  date: Date
+  powerSupplies: {
+    name: string
+    startTime: string
+    endTime: string
+  }[]
+}
+
+// Helper function to segment overlapping uptimes
+function segmentOverlappingUptimes(uptimes: UptimeInput[]): TimeSegment[] {
+  if (uptimes.length === 0) return []
+  
+  // Filter out incomplete uptimes (without end time)
+  const completeUptimes = uptimes.filter(u => u.endTime !== null)
+  if (completeUptimes.length === 0) return []
+  
+  // Collect all unique breakpoints (start and end times)
+  const breakpoints = new Set<number>()
+  completeUptimes.forEach(uptime => {
+    breakpoints.add(uptime.startTime.getTime())
+    if (uptime.endTime) {
+      breakpoints.add(uptime.endTime.getTime())
+    }
+  })
+  
+  // Sort breakpoints chronologically
+  const sortedBreakpoints = Array.from(breakpoints).sort((a, b) => a - b)
+  
+  // Create segments between consecutive breakpoints
+  const segments: TimeSegment[] = []
+  for (let i = 0; i < sortedBreakpoints.length - 1; i++) {
+    const segmentStart = new Date(sortedBreakpoints[i])
+    const segmentEnd = new Date(sortedBreakpoints[i + 1])
+    
+    // Determine which power supplies are ON during this segment
+    const activePowersSet = new Set<string>()
+    let isTestRun = false
+    
+    completeUptimes.forEach(uptime => {
+      if (uptime.endTime && 
+          uptime.startTime.getTime() <= segmentStart.getTime() && 
+          uptime.endTime.getTime() >= segmentEnd.getTime()) {
+        activePowersSet.add(uptime.power)
+        if (uptime.testRun) {
+          isTestRun = true
+        }
+      }
+    })
+    
+    const activePowers = Array.from(activePowersSet)
+    
+    if (activePowers.length > 0) {
+      segments.push({
+        startTime: segmentStart,
+        endTime: segmentEnd,
+        powers: activePowers,
+        testRun: isTestRun
+      })
+    }
+  }
+  
+  return segments
 }
 
 function parseDate(dateStr: string): Date {
   // Parse DD/MM/YYYY format
-  const parts = dateStr.split('/');
+  const parts = dateStr.trim().split('/');
   if (parts.length !== 3) throw new Error(`Invalid date format: ${dateStr}`);
   const day = parseInt(parts[0]);
   const month = parseInt(parts[1]) - 1; // Month is 0-indexed
@@ -42,7 +95,10 @@ function parseDate(dateStr: string): Date {
 
 function parseTime(timeStr: string): { hours: number; minutes: number } {
   // Parse HH:MM format
-  const parts = timeStr.split(':');
+  if (!timeStr || timeStr.trim() === '') {
+    return { hours: 0, minutes: 0 };
+  }
+  const parts = timeStr.trim().split(':');
   if (parts.length !== 2) throw new Error(`Invalid time format: ${timeStr}`);
   return {
     hours: parseInt(parts[0]) || 0,
@@ -50,59 +106,56 @@ function parseTime(timeStr: string): { hours: number; minutes: number } {
   };
 }
 
-function parseCSV(csvContent: string): CSVRow[] {
+function parseCSV(csvContent: string): ParsedRow[] {
   const lines = csvContent.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-  const rows: CSVRow[] = [];
-  let currentDate: string | null = null;
+  const rows: ParsedRow[] = [];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     
-    // Skip header lines
-    if (line.startsWith('Date,Start Time,End Time')) {
+    // Skip header line
+    if (line.toLowerCase().includes('date') && line.toLowerCase().includes('ejigbo')) {
       continue;
     }
 
-    const columns = line.split(',');
-    if (columns.length < 15) {
-      continue; // Skip invalid rows
-    }
-
-    const dateCol = columns[0].trim();
-    const startTimeCol = columns[1].trim();
-    const endTimeCol = columns[2].trim();
-
-    // Check if this is a parent row (has date, no start/end time)
-    if (dateCol && dateCol !== '-' && !startTimeCol && !endTimeCol) {
-      currentDate = dateCol;
-      // Skip parent rows, we only need child rows for creating uptimes
+    const columns = line.split(',').map(col => col.trim());
+    
+    // Expected format: Date, Ejigbo, Start Time, End Time, Isolo, Start Time, End Time, Gen 1, Start Time, End Time, ...
+    // Total: 1 (date) + 7 power supplies * 3 columns each = 22 columns
+    // But actually: 1 (date) + 8 power supplies * 3 = 25 columns total
+    // Columns: 0=Date, 1=Ejigbo name, 2=E start, 3=E end, 4=Isolo name, 5=I start, 6=I end,
+    //          7=G1 name, 8=G1 start, 9=G1 end, 10=G2 name, 11=G2 start, 12=G2 end,
+    //          13=G3 name, 14=G3 start, 15=G3 end, 16=G4 name, 17=G4 start, 18=G4 end,
+    //          19=G5 name, 20=G5 start, 21=G5 end, 22=G6 name, 23=G6 start, 24=G6 end
+    if (columns.length < 25) {
+      console.warn(`Skipping row ${i + 1}: insufficient columns (${columns.length}/25)`);
       continue;
     }
 
-    // This is a child row (has start/end time, date is dash)
-    if (dateCol === '-' && startTimeCol && endTimeCol && currentDate) {
-      rows.push({
-        date: currentDate,
-        startTime: startTimeCol,
-        endTime: endTimeCol,
-        ejigbo_av: parseDuration(columns[3].trim()),
-        isolo_av: parseDuration(columns[4].trim()),
-        g1_av: parseDuration(columns[5].trim()),
-        g2_av: parseDuration(columns[6].trim()),
-        g3_av: parseDuration(columns[7].trim()),
-        g4_av: parseDuration(columns[8].trim()),
-        g5_av: parseDuration(columns[9].trim()),
-        g6_av: parseDuration(columns[10].trim()),
-        generators_av: parseDuration(columns[11].trim()),
-        ejigbo_uz: parseDuration(columns[12].trim()),
-        isolo_uz: parseDuration(columns[13].trim()),
-        generators_uz: parseDuration(columns[14].trim()),
-      });
+    try {
+      const date = parseDate(columns[0]);
+      
+      // Parse power supplies (skip the name column, only extract start/end times)
+      const powerSupplies = [
+        { name: 'Ejigbo', startTime: columns[2], endTime: columns[3] },
+        { name: 'Isolo', startTime: columns[5], endTime: columns[6] },
+        { name: 'Gen 1', startTime: columns[8], endTime: columns[9] },
+        { name: 'Gen 2', startTime: columns[11], endTime: columns[12] },
+        { name: 'Gen 3', startTime: columns[14], endTime: columns[15] },
+        { name: 'Gen 4', startTime: columns[17], endTime: columns[18] },
+        { name: 'Gen 5', startTime: columns[20], endTime: columns[21] },
+        { name: 'Gen 6', startTime: columns[23], endTime: columns[24] },
+      ].filter(ps => ps.startTime && ps.startTime.trim() !== ''); // Only include power supplies with start time
+
+      rows.push({ date, powerSupplies });
+    } catch (error) {
+      console.warn(`Skipping row ${i + 1}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
   return rows;
 }
+
 
 async function ensurePowerSupplies() {
   // Ensure Ejigbo exists
@@ -121,9 +174,9 @@ async function ensurePowerSupplies() {
     });
   }
 
-  // Ensure all 12 generators exist
+  // Ensure generators 1-6 exist
   const generators: any = {};
-  for (let i = 1; i <= 12; i++) {
+  for (let i = 1; i <= 6; i++) {
     const genModel = `gen${i}` as any;
     const genName = `Generator ${i}`;
     
@@ -139,110 +192,139 @@ async function ensurePowerSupplies() {
   return { ejigbo, isolo, ...generators };
 }
 
-async function createUptimeRecords(rows: CSVRow[]) {
+async function createUptimeRecords(rows: ParsedRow[]) {
   const powerSupplies = await ensurePowerSupplies();
-  const createdCount = { total: 0, ejigbo: 0, isolo: 0, generators: 0 };
+  const createdCount = { total: 0, byPowerSupply: {} as Record<string, number> };
 
+  // Process each row (date)
   for (const row of rows) {
-    const date = parseDate(row.date);
-    const startTimeParsed = parseTime(row.startTime);
-    const endTimeParsed = parseTime(row.endTime);
-
-    const startTime = new Date(date);
-    startTime.setHours(startTimeParsed.hours, startTimeParsed.minutes, 0, 0);
-
-    const endTime = new Date(date);
-    endTime.setHours(endTimeParsed.hours, endTimeParsed.minutes, 0, 0);
+    const date = row.date;
     
-    // Handle end time on next day
-    if (endTime <= startTime) {
-      endTime.setDate(endTime.getDate() + 1);
-    }
-
     // Generate dayNumber (e.g., "2026022601")
     const year = date.getFullYear();
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const day = date.getDate().toString().padStart(2, '0');
     const dayNumber = `${year}${month}${day}01`;
 
-    // Determine if this is a test run
-    // A test run is when generators are running but no grid (Ejigbo/Isolo)
-    const isTestRun = row.generators_av > 0 && row.ejigbo_av === 0 && row.isolo_av === 0;
+    // Convert power supplies to UptimeInput format for segmentation
+    const uptimeInputs: UptimeInput[] = [];
+    
+    for (const ps of row.powerSupplies) {
+      if (!ps.startTime || !ps.endTime) continue;
+      
+      try {
+        const startTimeParsed = parseTime(ps.startTime);
+        const endTimeParsed = parseTime(ps.endTime);
 
-    // Count active generators
-    const activeGenerators = [
-      row.g1_av, row.g2_av, row.g3_av, row.g4_av, row.g5_av, row.g6_av
-    ].filter(av => av > 0).length;
+        const startTime = new Date(date);
+        startTime.setHours(startTimeParsed.hours, startTimeParsed.minutes, 0, 0);
 
-    // Create Ejigbo uptime if it has availability
-    if (row.ejigbo_av > 0) {
-      await prisma.uptime.create({
-        data: {
-          date,
-          startTime,
-          endTime,
-          runTime: row.ejigbo_av,
-          utilization: row.ejigbo_uz,
-          testRun: false,
-          status: 'COMPLETE',
-          dayNumber,
-          ejigboId: powerSupplies.ejigbo.id,
-        },
-      });
-      createdCount.ejigbo++;
-      createdCount.total++;
-    }
-
-    // Create Isolo uptime if it has availability
-    if (row.isolo_av > 0) {
-      await prisma.uptime.create({
-        data: {
-          date,
-          startTime,
-          endTime,
-          runTime: row.isolo_av,
-          utilization: row.isolo_uz,
-          testRun: false,
-          status: 'COMPLETE',
-          dayNumber,
-          isoloId: powerSupplies.isolo.id,
-        },
-      });
-      createdCount.isolo++;
-      createdCount.total++;
-    }
-
-    // Create generator uptimes
-    const generatorData = [
-      { av: row.g1_av, id: powerSupplies.gen1.id, field: 'gen1Id' },
-      { av: row.g2_av, id: powerSupplies.gen2.id, field: 'gen2Id' },
-      { av: row.g3_av, id: powerSupplies.gen3.id, field: 'gen3Id' },
-      { av: row.g4_av, id: powerSupplies.gen4.id, field: 'gen4Id' },
-      { av: row.g5_av, id: powerSupplies.gen5.id, field: 'gen5Id' },
-      { av: row.g6_av, id: powerSupplies.gen6.id, field: 'gen6Id' },
-    ];
-
-    for (const gen of generatorData) {
-      if (gen.av > 0) {
-        // Generator utilization is 0 unless specific conditions are met
-        // Based on export logic: generators get utilization only when Isolo + 2 generators
-        let genUtilization = 0;
+        const endTime = new Date(date);
+        endTime.setHours(endTimeParsed.hours, endTimeParsed.minutes, 0, 0);
         
+        // Handle end time on next day
+        if (endTime <= startTime) {
+          endTime.setDate(endTime.getDate() + 1);
+        }
+
+        uptimeInputs.push({
+          power: ps.name,
+          startTime,
+          endTime,
+          testRun: false, // Will determine this based on which power supplies are active
+        });
+      } catch (error) {
+        console.warn(`Skipping power supply ${ps.name} for date ${date}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+
+    if (uptimeInputs.length === 0) {
+      console.warn(`No valid uptimes for date ${date.toISOString()}`);
+      continue;
+    }
+
+    // Segment overlapping uptimes
+    const segments = segmentOverlappingUptimes(uptimeInputs);
+    
+    console.log(`Date ${date.toISOString().split('T')[0]}: Created ${segments.length} segments from ${uptimeInputs.length} uptimes`);
+
+    // Create uptime records for each segment
+    for (const segment of segments) {
+      const segmentDuration = Math.round((segment.endTime.getTime() - segment.startTime.getTime()) / (1000 * 60)); // in minutes
+      
+      // Determine if this is a test run (generators only, no grid)
+      const hasEjigbo = segment.powers.includes('Ejigbo');
+      const hasIsolo = segment.powers.includes('Isolo');
+      const hasGenerators = segment.powers.some(p => p.startsWith('Gen '));
+      const isTestRun = hasGenerators && !hasEjigbo && !hasIsolo;
+
+      // Helper function to calculate utilization
+      const calculateUtilization = (power: string): number => {
+        // Rule 1: If Test Run, utilization is always 0
+        if (isTestRun) {
+          return 0;
+        }
+
+        // Rule 2: If Ejigbo is ON
+        if (hasEjigbo) {
+          // Ejigbo gets 100% of its runtime as utilization
+          if (power === 'Ejigbo') {
+            return segmentDuration;
+          }
+          // All other power supplies get 0 utilization
+          return 0;
+        }
+
+        // Rule 3: If Ejigbo is OFF but Isolo is ON
+        if (!hasEjigbo && hasIsolo) {
+          // Isolo gets 50% of its runtime as utilization
+          if (power === 'Isolo') {
+            return segmentDuration * 0.5;
+          }
+          // Generators get 0 (combined utilization handled elsewhere if needed)
+          return 0;
+        }
+
+        // Rule 4: If neither Ejigbo nor Isolo is ON
+        return 0;
+      };
+
+      // Create uptime records for each active power supply in this segment
+      for (const power of segment.powers) {
+        const utilization = calculateUtilization(power);
+        
+        let powerSupplyData: any = {};
+        
+        // Map power name to database field
+        if (power === 'Ejigbo') {
+          powerSupplyData.ejigboId = powerSupplies.ejigbo.id;
+        } else if (power === 'Isolo') {
+          powerSupplyData.isoloId = powerSupplies.isolo.id;
+        } else if (power.startsWith('Gen ')) {
+          const genNum = power.replace('Gen ', '');
+          const genKey = `gen${genNum}` as keyof typeof powerSupplies;
+          powerSupplyData[`gen${genNum}Id`] = powerSupplies[genKey].id;
+        }
+
         await prisma.uptime.create({
           data: {
             date,
-            startTime,
-            endTime,
-            runTime: gen.av,
-            utilization: genUtilization,
+            startTime: segment.startTime,
+            endTime: segment.endTime,
+            runTime: segmentDuration,
+            utilization,
             testRun: isTestRun,
             status: 'COMPLETE',
             dayNumber,
-            [gen.field]: gen.id,
+            ...powerSupplyData,
           },
         });
-        createdCount.generators++;
+
         createdCount.total++;
+        if (!createdCount.byPowerSupply[power]) {
+          createdCount.byPowerSupply[power] = 0;
+        }
+        createdCount.byPowerSupply[power]++;
       }
     }
   }
